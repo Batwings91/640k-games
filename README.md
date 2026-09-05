@@ -13,7 +13,9 @@ credits.html            studio-wide licence notes; links to each game's attribut
 404.html                GitHub Pages serves this for missing pages
 css/style.css           the whole look; colours are the brand palette (see Logo/README.md)
 assets/logo/            copies of the brand exports — the master is the Logo repo, never edit these here
-assets/spore-wars/      hangar.png: hero art, 960x540, dithered to a reduced palette (~300 KB)
+assets/spore-wars/      hangar.png (960x540, game page) and hangar-half.png (480x270, home) — the game's
+                        menu_hangar.webp, cover-cropped and ordered-dithered to 512 colours. Regenerate
+                        with tools/render-hero.js when the game art changes
 .nojekyll               tells GitHub Pages to serve files as-is
 ```
 
