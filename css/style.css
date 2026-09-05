@@ -1,0 +1,161 @@
+/* 640K Games — site stylesheet.
+   Plain CSS, no build step. Colours come from the brand (Logo/README.md).
+   Look: mid-90s VGA / DOS boot screen. Dark ground, amber accents, mono type. */
+
+:root {
+  --amber: #ffc83c;
+  --white: #e8e8f0;
+  --grey:  #a8a8a8;
+  --ink:   #0c0e1a;
+  --black: #000000;
+  --panel: #14172a;      /* one step lighter than ink, for boxes */
+  --line:  #3a3f5c;      /* box borders */
+  --cyan:  #5ce0e8;      /* VGA cyan, used sparingly for "in development" */
+  --mono: ui-monospace, "Cascadia Mono", Consolas, "Liberation Mono", "DejaVu Sans Mono", Menlo, monospace;
+  --measure: 72ch;
+}
+
+* { box-sizing: border-box; }
+
+html { background: var(--ink); color-scheme: dark; }
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--white);
+  font-family: var(--mono);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Faint CRT scanlines over everything. Pure CSS, no image. */
+body::after {
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.18) 2px 3px);
+  z-index: 100;
+}
+
+img { max-width: 100%; height: auto; display: block; }
+.pixel { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+a { color: var(--amber); text-decoration: none; }
+a:hover, a:focus-visible { text-decoration: underline; outline: none; }
+a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+/* ---- Header: a black terminal strip, matching the logo's own ground ---- */
+.site-header {
+  background: var(--black);
+  border-bottom: 4px double var(--line);
+}
+.site-header .inner {
+  max-width: 1080px; margin: 0 auto; padding: 12px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 24px; flex-wrap: wrap;
+}
+.site-header .logo img { width: 291px; height: 45px; }   /* exactly half of 582×90 */
+@media (max-width: 420px) { .site-header .logo img { width: 194px; height: 30px; } }
+
+.site-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+.site-nav a {
+  color: var(--grey); text-transform: uppercase; letter-spacing: .08em;
+  font-size: 14px; padding: 6px 10px; border: 1px solid transparent;
+}
+.site-nav a:hover, .site-nav a:focus-visible { color: var(--amber); text-decoration: none; }
+.site-nav a[aria-current="page"] {
+  color: var(--ink); background: var(--amber); border-color: var(--amber);
+}
+
+/* ---- Layout ---- */
+main { max-width: 1080px; margin: 0 auto; padding: 32px 20px 64px; }
+.prose { max-width: var(--measure); }
+
+h1, h2, h3 {
+  color: var(--amber); font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; line-height: 1.2; margin: 0 0 .6em;
+}
+h1 { font-size: clamp(26px, 4vw, 40px); }
+h2 { font-size: clamp(20px, 3vw, 26px); margin-top: 2em; }
+h3 { font-size: 17px; color: var(--white); margin-top: 1.6em; }
+h1::before, h2::before { content: "> "; color: var(--grey); }
+
+p { margin: 0 0 1em; }
+.muted { color: var(--grey); }
+.small { font-size: 14px; }
+hr { border: 0; border-top: 1px dashed var(--line); margin: 2.5em 0; }
+
+/* ---- Boxes: double-ruled like a DOS text-mode dialog ---- */
+.box {
+  background: var(--panel);
+  border: 4px double var(--line);
+  padding: 20px 24px;
+  margin: 1.5em 0;
+}
+.box h2, .box h3 { margin-top: 0; }
+
+/* Status badge, e.g. IN DEVELOPMENT */
+.badge {
+  display: inline-block; font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+  padding: 2px 8px; border: 1px solid currentColor; color: var(--cyan);
+}
+.badge.amber { color: var(--amber); }
+
+/* Buttons: solid amber block, ink text. Uses ▶ as a text glyph, no icon files. */
+.btn {
+  display: inline-block; background: var(--amber); color: var(--ink);
+  padding: 10px 18px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+  border: 2px solid var(--amber); margin: 4px 8px 4px 0;
+}
+.btn:hover, .btn:focus-visible { background: var(--white); border-color: var(--white); text-decoration: none; }
+.btn.ghost { background: transparent; color: var(--amber); }
+.btn.ghost:hover, .btn.ghost:focus-visible { background: var(--amber); color: var(--ink); }
+.btn[aria-disabled="true"] { opacity: .45; cursor: default; pointer-events: none; }
+
+/* ---- Home hero ---- */
+.hero { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: center; }
+@media (max-width: 760px) { .hero { grid-template-columns: 1fr; } }
+.hero figure { margin: 0; border: 4px double var(--line); background: var(--black); }
+.hero figure img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.tagline { font-size: 18px; color: var(--grey); margin-bottom: 1.5em; }
+
+/* Game cards on home / games list */
+.games { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+.card { background: var(--panel); border: 4px double var(--line); padding: 0; }
+.card img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-bottom: 1px solid var(--line); }
+.card .body { padding: 16px 20px 20px; }
+.card h3 { margin: 0 0 6px; color: var(--amber); }
+
+/* Definition-style spec table (game page "readme") */
+.spec { display: grid; grid-template-columns: max-content 1fr; gap: 4px 20px; margin: 0 0 1.5em; }
+.spec dt { color: var(--grey); text-transform: uppercase; font-size: 13px; letter-spacing: .08em; }
+.spec dd { margin: 0; }
+
+/* Credits list */
+.credits { list-style: none; padding: 0; margin: 0; }
+.credits li { padding: 12px 0; border-bottom: 1px dashed var(--line); }
+.credits li:last-child { border-bottom: 0; }
+.credits .what { color: var(--amber); }
+.credits .lic { color: var(--grey); font-size: 14px; }
+
+/* ---- Footer ---- */
+.site-footer {
+  border-top: 4px double var(--line); background: var(--black);
+  color: var(--grey); font-size: 14px;
+}
+.site-footer .inner {
+  max-width: 1080px; margin: 0 auto; padding: 20px;
+  display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+}
+.site-footer a { color: var(--grey); }
+.site-footer a:hover { color: var(--amber); }
+
+/* Blinking block cursor for inline prompt text */
+.cursor::after {
+  content: "\2588"; color: var(--white); margin-left: 2px;
+  animation: blink 1s steps(1) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cursor::after { animation: none; } }
