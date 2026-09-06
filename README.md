@@ -39,3 +39,12 @@ Open `index.html` in a browser, or serve the folder with any static server.
 Note: `404.html` uses root-absolute links (`/css/style.css`), which only work when the site is at the
 domain root (custom domain, or a repo named `batwings91.github.io`). If it lives under `/<repo>/`,
 prefix those links with the repo name.
+
+## Updating the unlisted test build
+The game is playable at an unlisted link under `play/<token>/` (no-indexed, excluded in `robots.txt`,
+not linked from any page). To push the latest game to it, from this folder:
+```
+node tools/update-play.js
+```
+It rebuilds `../spore-wars/dist/spore-wars.html`, copies it into the play folder, commits and pushes.
+GitHub Pages goes live about a minute later. To retire the link, delete the `play/` folder and push.
