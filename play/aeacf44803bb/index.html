@@ -753,7 +753,7 @@ const keys={};let tapped=false,tapSrc='key';
 const KEYMAP={ArrowLeft:'l',ArrowRight:'r',ArrowUp:'u',ArrowDown:'d',KeyA:'l',KeyD:'r',KeyW:'u',KeyS:'d'};
 addEventListener('keydown',e=>{
   if(e.code==='KeyM'&&!e.repeat){SFX.toggleMute();}
-  if(mode==='play'){
+  if(mode==='play'||mode==='travel'){
     if(e.code==='Escape'||e.code==='KeyP'){e.preventDefault();if(!e.repeat)setPaused(!paused);return;}
     if(paused){
       e.preventDefault();if(e.repeat)return;
@@ -783,11 +783,11 @@ addEventListener('keydown',e=>{
 });
 addEventListener('keyup',e=>{if(KEYMAP[e.code])keys[KEYMAP[e.code]]=false;});
 // Losing window focus pauses a live run: an alt-tabbed player should not die off-screen.
-addEventListener('blur',()=>{if(mode==='play'&&!paused)setPaused(true);});
+addEventListener('blur',()=>{if((mode==='play'||mode==='travel')&&!paused)setPaused(true);});
 let ptr={down:false,x:0,y:0,lx:0,ly:0,rel:0};
 function pos(e){const r=cv.getBoundingClientRect();const p=e.touches?e.touches[0]:e;return{x:(p.clientX-r.left)/r.width*LW,y:(p.clientY-r.top)/r.height*LH};}
-function pdown(e){if(e.cancelable)e.preventDefault();cv.focus();const p=pos(e);if(p.x>PX+PW+12&&p.y>LH-88&&p.y<LH-58&&(mode==='play'||mode==='dead')){SFX.toggleMute();return;}
-  if(mode==='play'&&paused){pauseTap(p);return;}
+function pdown(e){if(e.cancelable)e.preventDefault();cv.focus();const p=pos(e);if(p.x>PX+PW+12&&p.y>LH-88&&p.y<LH-58&&(mode==='play'||mode==='dead'||mode==='travel')){SFX.toggleMute();return;}
+  if((mode==='play'||mode==='travel')&&paused){pauseTap(p);return;}
   if(mode==='play'&&p.x>PX+PW+12&&p.y>168&&p.y<248){fireBomb();ptr.down=false;return;}ptr.down=true;ptr.x=ptr.lx=p.x;ptr.y=ptr.ly=p.y;ptr.rel=p.y/LH;tapped=true;tapSrc='ptr';}
 function pmove(e){if(mode==='title'&&!e.touches){const p=pos(e),i=TITLE_BUTTONS.findIndex(b=>p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h);if(i>=0)titleSel=i;}if(!ptr.down)return;if(e.cancelable)e.preventDefault();const p=pos(e);ptr.x=p.x;ptr.y=p.y;}
 function pup(e){if(e.cancelable)e.preventDefault();ptr.down=false;}
@@ -1451,19 +1451,46 @@ function completeSector(){
   sectorBanked=cores-bankedCores;save.cores+=sectorBanked;bankedCores=cores;
   if(score>save.best)save.best=score;persist();sectorPending=false;mode='sector';sectorSel=0;t=0;setPaused(false);shots=[];eshots=[];resetRockets();
 }
-function nextSector(){shopFromSector=false;mode='play';t=0;waveT=60;tapped=false;ptr.down=false;}
+let travelOrigin={x:0,y:0};
+function nextSector(){
+  if(mode!=='sector')return;
+  travelOrigin={x:ship.x,y:ship.y};shopFromSector=false;mode='travel';t=0;setPaused(false);
+  shots=[];eshots=[];booms=[];floats=[];rings=[];evt=0;flash=0;shake=0;slow=0;muzz=0;
+}
+function updateSectorTravel(){
+  worldScroll+=t<60?5:2;
+  if(t<60){const p=t/60;ship.x=travelOrigin.x+(LW/2-travelOrigin.x)*p;ship.y=travelOrigin.y-(travelOrigin.y+90)*p*p;}
+  else if(t===60){worldStage=worldFrom=worldForWave(level+1);worldFade=0;worldNotice=0;worldScroll=0;ship.x=LW/2;ship.y=LH+80;}
+  else if(t>=90){const p=Math.min(1,(t-90)/60);ship.y=LH+80-140*(1-(1-p)*(1-p));}
+  if(t>=180){mode='play';t=0;waveT=0;tapped=false;ptr.down=false;for(const k in keys)keys[k]=false;}
+}
+function sectorTravelScreen(){
+  playScene();
+  const curtain=t<60?Math.max(0,(t-30)/30):Math.max(0,1-(t-60)/30);
+  ctx.fillStyle='rgba(5,10,18,'+curtain+')';ctx.fillRect(X(PX),0,X(PW),H);
+  if(t>=72){const world=WORLDS[worldForWave(level+1)],fade=Math.min(1,(t-72)/24,(180-t)/24);
+    ctx.save();ctx.globalAlpha=fade;glassPanel(PX+20,83,PW-40,101,world.accent);
+    txt('LEVEL '+(Math.floor(level/5)+1),LW/2,97,world.accent,12,'center');
+    txt(world.name,LW/2,121,'#e2edf0',22,'center');
+    txt(world.detail,LW/2,157,world.accent,10,'center');ctx.restore();}
+}
 function leaveShop(){if(shopFromSector){mode='sector';t=60;tapped=false;}else{clearScene();mode='title';t=0;}}
 function sectorScreen(){
-  playScene();ctx.save();const reveal=Math.min(1,t/30);ctx.globalAlpha=reveal;ctx.translate(0,X((1-reveal)*10));glassPanel(PX+30,78,PW-60,210,'#d6b36c');
-  txt('LEVEL '+Math.floor(level/5)+' COMPLETE!',LW/2,96,'#d2e8ef',24,'center');
+  playScene();ctx.save();const reveal=Math.min(1,t/30);ctx.globalAlpha=reveal;
+  ctx.fillStyle='rgba(5,10,18,0.66)';ctx.fillRect(X(PX),0,X(PW),H);
+  glassPanel(PX+14,24,PW-28,310,'#d6b36c');
+  txt('SECTOR SECURED',LW/2,42,'#d6b36c',11,'center');
+  txt('LEVEL '+Math.floor(level/5)+' COMPLETE',LW/2,65,'#f0d59c',26,'center');
+  txt('Take a breath. The next world can wait.',LW/2,105,'#a4b8c6',10,'center');
   txt('+'+Math.floor(sectorBanked*Math.min(1,t/60))+' cores banked',LW/2,133,C.cyan,14,'center');
   txt(save.cores+' cores available for upgrades',LW/2,154,'#a4b8c6',12,'center');
   ctx.globalAlpha=reveal*(t<60?0.35:1);
-  for(const [i,label] of ['VISIT WORKSHOP','NEXT LEVEL'].entries()){
+  for(const [i,label] of ['UPGRADE / WORKSHOP','PROCEED'].entries()){
     menuChoice(label,LW/2-130,184+i*44,260,32,i===sectorSel,13);}
   ctx.globalAlpha=reveal;
-  if(t<60)txt(TOUCH?'Tap to finish tally':'ENTER to finish tally',LW/2,272,'#a4b8c6',10,'center');
-  else if(!TOUCH)txt('UP/DOWN choose / ENTER select / Q Workshop',LW/2,272,'#a4b8c6',10,'center');
+  txt('NEXT: '+WORLDS[worldForWave(level+1)].name,LW/2,277,'#d6b36c',10,'center');
+  if(t<60)txt(TOUCH?'Tap to finish tally':'ENTER to finish tally',LW/2,307,'#a4b8c6',9,'center');
+  else txt(TOUCH?'Choose when you are ready':'UP/DOWN choose / ENTER select / Q Workshop',LW/2,307,'#a4b8c6',9,'center');
   ctx.restore();
 }
 
@@ -1515,11 +1542,12 @@ function continueRun(){resetRockets();chain=0;chainT=0;usedContinue=true;mode='p
 newRun();
 let lastT=0,acc=0;
 function frame(now){const STEP=1000/60;const dt=lastT?Math.min(50,now-lastT):STEP;lastT=now;acc+=dt;let steps=0;while(acc>=STEP&&steps<3){acc-=STEP;steps++;stepLogic();}if(steps>0)render();requestAnimationFrame(frame);}
-function stepLogic(){if(!paused)ship.hullDisplay+=Math.max(-0.08,Math.min(0.08,ship.hull-ship.hullDisplay));if(exitWait>0)exitWait--;blink++;if(mode!=='play'){t++;scroll=(scroll+0.9)%TH;}
+function stepLogic(){if(!paused)ship.hullDisplay+=Math.max(-0.08,Math.min(0.08,ship.hull-ship.hullDisplay));if(exitWait>0)exitWait--;blink++;if(mode!=='play'&&!paused){t++;if(mode!=='sector')scroll=(scroll+0.9)%TH;}
   if(shake>0)shake--;if(flash>0)flash--;
   if(mode==='boot'){bootBeep();if(tapped&&t>60&&(assetsReady||assetsFailed)){SFX.unlock();SFX.preload();mode='title';t=0;}}
   else if(mode==='title'){if(tapped&&t>10){const i=tapSrc==='ptr'?TITLE_BUTTONS.findIndex(b=>ptr.x>=b.x&&ptr.x<=b.x+b.w&&ptr.y>=b.y&&ptr.y<=b.y+b.h):titleSel;if(i===1)mode='shop';else if(i===2)SFX.toggleMute();else if(i===0){newRun();mode='play';t=0;}}}
   else if(mode==='play'){if(!paused){if(slow>0){slow--;if(blink%2===0)update();}else update();}}
+  else if(mode==='travel'){if(!paused)updateSectorTravel();}
   else if(mode==='dead'){if(tapped){if(tapSrc==='key')chooseDead(deadSel);else if(ptr.x>=LW/2-130&&ptr.x<=LW/2+130){const i=Math.floor((ptr.y-176)/23);if(i>=0&&i<deadOptions().length)chooseDead(i);}}}
   else if(mode==='sector'){if(tapped&&t>15){if(t<60){t=60;}else if(tapSrc==='key'){if(sectorSel===0){shopFromSector=true;mode='shop';t=0;}else nextSector();}else if(ptr.x>=LW/2-130&&ptr.x<=LW/2+130){if(ptr.y>=184&&ptr.y<=216){shopFromSector=true;mode='shop';t=0;}else if(ptr.y>=228&&ptr.y<=260)nextSector();}}}
   else if(mode==='shop'){if(tapped){if(tapSrc==='key'){if(shopSel===3)leaveShop();else buy();}else if(ptr.y>=82&&ptr.y<=198){const i=Math.floor((ptr.x-292)/110);if(i>=0&&i<3&&ptr.x<=292+i*110+102){shopSel=i;shopItem=i;}}else if(ptr.y>=298&&ptr.y<=330){if(ptr.x>=510&&ptr.x<=614)leaveShop();else if(ptr.x>=292&&ptr.x<=500&&shopSel<3)buy();}}}
@@ -1533,6 +1561,7 @@ function render(){
   else if(mode==='play'){playScene();if(paused)pauseScreen();}
   else if(mode==='dead')deadScreen();
   else if(mode==='sector')sectorScreen();
+  else if(mode==='travel'){sectorTravelScreen();if(paused)pauseScreen();}
   else if(mode==='shop')shopScreen();}
 requestAnimationFrame(frame);
 </script>
