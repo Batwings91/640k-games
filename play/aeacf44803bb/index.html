@@ -688,10 +688,11 @@ addEventListener('touchstart',pdown,{passive:false});addEventListener('touchmove
 let mode='boot',t=0,blink=0,shopSel=0,scroll=0,lastW=0;
 let boss=null,bossWarn=0,bossDying=0,bossCount=0;let muzz=0,shieldHit=0,floats=[],evt=0,evtText='',evtCol='#fff',rings=[],bombs=0,bombFx=0,slow=0;let ship,shots,eshots,enemies,drops,booms,score,lives,cores,wpn,shield,usedContinue,shake,flash,waveT,level,fireT,hint,kills;
 let bankedCores=0,sectorPending=false,sectorBanked=0,shopFromSector=false;
+const MAX_HULL=3;
 const CHAIN_TIME=240;let chain=0,chainT=0;
 const chainMultiplier=()=>Math.min(4,1+Math.floor(chain/3));
 function awardKill(points,x,y){chain++;chainT=CHAIN_TIME;const mult=chainMultiplier(),earned=points*mult;score+=earned;addFloat(x,y,'+'+earned+(mult>1?' x'+mult:''),C.yellow);}
-function newRun(){sectorPending=false;sectorBanked=0;shopFromSector=false;resetRockets();resetWorld();chain=0;chainT=0;bankedCores=0;ship={x:PX+PW/2,y:LH-60,inv:60};shots=[];eshots=[];enemies=[];drops=[];booms=[];
+function newRun(){sectorPending=false;sectorBanked=0;shopFromSector=false;resetRockets();resetWorld();chain=0;chainT=0;bankedCores=0;ship={x:PX+PW/2,y:LH-60,inv:60,hull:MAX_HULL};shots=[];eshots=[];enemies=[];drops=[];booms=[];
   score=0;lives=3;cores=0;wpn=save.weapon;shield=save.shield;usedContinue=false;shake=0;flash=0;waveT=0;level=0;fireT=0;hint=240;kills=0;floats=[];rings=[];evt=0;bombs=1;bombFx=0;slow=0;lastW=0;boss=null;bossWarn=0;bossDying=0;bossCount=0;if(STARTWAVE)level=STARTWAVE;}
 const GUN=[{n:'PULSE',dmg:1,rate:12},{n:'TWIN',dmg:1,rate:11},{n:'TRIPLE',dmg:2,rate:10},{n:'SPREAD',dmg:2,rate:14},{n:'STORM',dmg:2,rate:14}];const MAXW=4;
 const spd=()=>3.7+save.engine*0.5;
@@ -936,7 +937,9 @@ function drawMothershipFallback(b){
 // Gameplay update(): collisions, drops, pickups, bombs; enemy/ship drawing and drawField().
 function boom(x,y,big){SFX.boom(big);booms.push({x,y,f:0,sc:big?1.6:1,life:24,kind:big?'exp_big':'exp_small'});for(let i=0;i<(big?10:4);i++)booms.push({x,y,vx:(Math.random()-0.5)*(big?6:4),vy:(Math.random()-0.5)*(big?6:4),life:12+Math.random()*12});}
 function hitShip(){if(ship.inv>0||GOD)return;if(shield>0){shield--;ship.inv=40;shieldHit=12;SFX.shieldHit();return;}
-  resetRockets();chain=0;chainT=0;lives--;boom(ship.x,ship.y,true);SFX.die();shake=14;flash=8;ship.inv=90;wpn=Math.max(0,wpn-1);addFloat(ship.x,ship.y-40,'SHIP LOST',C.red);
+  ship.hull--;
+  if(ship.hull>0){ship.inv=40;shake=6;flash=3;SFX.hit();addFloat(ship.x,ship.y-40,ship.hull===1?'HULL CRITICAL':'HULL DAMAGED',C.red);return;}
+  resetRockets();chain=0;chainT=0;lives--;ship.hull=lives>0?MAX_HULL:0;boom(ship.x,ship.y,true);SFX.die();shake=14;flash=8;ship.inv=90;wpn=Math.max(0,wpn-1);addFloat(ship.x,ship.y-40,'SHIP LOST',C.red);
   if(lives<=0){save.cores+=cores-bankedCores;bankedCores=cores;if(score>save.best)save.best=score;persist();mode='dead';deadSel=0;t=0;SFX.bossTheme(false);}}
 function dropFor(e){kills++;
   const weaponGap=level<=5?9:15;
@@ -1165,11 +1168,13 @@ function drawPanels(){
   const box=(x,y,w,h,label,val,col)=>{panel(x,y,w,h);ctx.font=Math.round(9*K)+'px monospace';ctx.fillStyle='#91a7b5';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(label,X(x+8),X(y+6));if(val!==undefined)txt(val,x+8,y+21,col,15);};
   box(12,12,PX-24,44,'SCORE',String(score).padStart(6,'0'),C.yellow);
   box(12,64,PX-24,44,'BEST',String(Math.max(score,save.best)).padStart(6,'0'),C.text);
-  box(12,116,PX-24,44,'LIVES');for(let i=0;i<lives;i++)ctx.drawImage(IMG.player||SHIP,X(20+i*22),X(131),24,22);
+  box(12,116,PX-24,44,'LIVES');for(let i=0;i<lives;i++)ctx.drawImage(IMG.player||SHIP,X(20+i*22),X(139),24,22);
   box(12,168,PX-24,44,'WAVE',boss||bossWarn?'BOSS':String(level),boss||bossWarn?C.red:C.text);
   box(12,220,PX-24,56,'CHAIN','x'+chainMultiplier(),chainT>0?C.yellow:C.dim);
   ctx.fillStyle=C.s1;ctx.fillRect(X(20),X(264),X(PX-40),X(4));ctx.fillStyle=C.yellow;ctx.fillRect(X(20),X(264),X((PX-40)*chainT/CHAIN_TIME),X(4));
-  label('3 kills: +1x',PX/2,284,'center');
+  box(12,284,PX-24,64,'HULL');
+  for(let i=0;i<MAX_HULL;i++){ctx.fillStyle=i<ship.hull?(ship.hull===1?'#ed8474':'#78d7b0'):'#243542';ctx.fillRect(X(20+i*22),X(307),X(16),X(12));}
+  ctx.font=X(7)+'px monospace';ctx.fillStyle=ship.hull===1?'#ed8474':'#91a7b5';ctx.textAlign='center';ctx.fillText(ship.hull===0?'DESTROYED':ship.hull===1?'CRITICAL':'SHIP HEALTH',X(PX/2),X(330));
   const rx=PX+PW+12,rw=LW-PX-PW-24;
   box(rx,12,rw,44,'GUN',GUN[wpn].n,C.cyan);for(let i=0;i<5;i++){ctx.fillStyle=i<=wpn?C.cyan:C.s1;ctx.fillRect(X(rx+rw-34+i*6),X(18),X(4),X(8));}
   box(rx,64,rw,44,'SHIELD');for(let i=0;i<2;i++){ctx.globalAlpha=i<shield?1:0.25;ctx.drawImage(SHF[Math.floor(t/4)%8],X(rx+8+i*30),X(80),X(18),X(18));ctx.globalAlpha=1;}
@@ -1260,7 +1265,7 @@ function pauseScreen(){
   glassPanel(PX+40,90,PW-80,190,'#55c5d8');
   txt(exitConfirm?'RETURN TO MAIN MENU?':'PAUSED',LW/2,108,'#d2e8ef',exitConfirm?20:28,'center');
   if(exitConfirm){txt('Your cores will be saved.',LW/2,145,'#a4b8c6',12,'center');txt('This run will end.',LW/2,163,'#a4b8c6',12,'center');}
-  else txt('No shield: next hit costs a life.',LW/2,145,'#a4b8c6',11,'center');
+  else txt('Shields absorb hits. Empty hull costs a life.',LW/2,145,'#a4b8c6',10,'center');
   const y=exitConfirm?190:174,labels=exitConfirm?['KEEP PLAYING','RETURN TO MAIN MENU']:['RESUME','MAIN MENU'];
   labels.forEach((label,i)=>{const hot=exitConfirm?exitChoice===i:pauseSel===i;
     glassPanel(LW/2-130,y+i*44,260,30,hot?'#56dcf1':'#526675');
@@ -1330,7 +1335,7 @@ function buy(){const it=SHOP[shopSel],lvl=save[it.k];if(lvl>=it.max)return;const
 // clear the run's transient state on every return to the title so nothing bleeds through.
 function clearScene(){resetRockets();enemies=[];eshots=[];shots=[];drops=[];booms=[];floats=[];rings=[];boss=null;bossWarn=0;bossDying=0;}
 function quitRun(){clearScene();save.cores+=cores-bankedCores;bankedCores=cores;if(score>save.best)save.best=score;persist();setPaused(false);mode='title';t=0;SFX.bossTheme(false);}
-function continueRun(){resetRockets();chain=0;chainT=0;usedContinue=true;mode='play';lives=2;ship.inv=120;eshots=[];enemies=[];flash=6;}
+function continueRun(){resetRockets();chain=0;chainT=0;usedContinue=true;mode='play';lives=2;ship.hull=MAX_HULL;ship.inv=120;eshots=[];enemies=[];flash=6;}
 
 newRun();
 let lastT=0,acc=0;
