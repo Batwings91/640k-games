@@ -818,7 +818,7 @@ const chainMultiplier=()=>Math.min(4,1+Math.floor(chain/3));
 function awardKill(points,x,y){chain++;chainT=CHAIN_TIME;const mult=chainMultiplier(),earned=points*mult;score+=earned;addFloat(x,y,'+'+earned+(mult>1?' x'+mult:''),C.yellow);}
 function newRun(){formationGroup=STARTWAVE?(AUTHORED_WAVES[STARTWAVE-1]?.length||0):0;sectorPending=false;sectorBanked=0;shopFromSector=false;resetRockets();resetWorld();chain=0;chainT=0;bankedCores=0;ship={x:PX+PW/2,y:LH-60,inv:60,hull:MAX_HULL,hullDisplay:MAX_HULL};shots=[];eshots=[];enemies=[];drops=[];booms=[];
   score=0;lives=3;cores=0;wpn=save.weapon;shield=save.shield;usedContinue=false;shake=0;flash=0;waveT=0;level=0;fireT=0;hint=240;kills=0;floats=[];rings=[];evt=0;bombs=1;bombFx=0;slow=0;lastW=0;boss=null;bossWarn=0;bossDying=0;bossCount=0;if(STARTWAVE)level=STARTWAVE;}
-const GUN=[{n:'PULSE',dmg:1,rate:12},{n:'TWIN',dmg:1,rate:11},{n:'TRIPLE',dmg:2,rate:10},{n:'SPREAD',dmg:2,rate:14},{n:'STORM',dmg:2,rate:14}];const MAXW=4;
+const GUN=[{n:'PULSE',dmg:1,rate:12},{n:'TWIN',dmg:1,rate:11},{n:'TRIPLE',dmg:2,rate:10},{n:'SPREAD',dmg:2,rate:16},{n:'STORM',dmg:2,rate:18}];const MAXW=4;
 const spd=()=>3.7+save.engine*0.5;
 const R={0:17,1:20,2:23,3:30,4:20,5:20};
 // Authored formations through the first three sectors; null entries are boss waves.
@@ -1095,9 +1095,9 @@ function drawMothershipFallback(b){
 'use strict';
 // Gameplay update(): collisions, drops, pickups, bombs; enemy/ship drawing and drawField().
 function boom(x,y,big){SFX.boom(big);booms.push({x,y,f:0,sc:big?1.6:1,life:24,kind:big?'exp_big':'exp_small'});for(let i=0;i<(big?10:4);i++)booms.push({x,y,vx:(Math.random()-0.5)*(big?6:4),vy:(Math.random()-0.5)*(big?6:4),life:12+Math.random()*12});}
-function hitShip(){if(ship.inv>0||GOD)return;if(shield>0){shield--;ship.inv=40;shieldHit=12;SFX.shieldHit();return;}
+function hitShip(){if(ship.inv>0||GOD)return;if(shield>0){shield--;ship.inv=40;shieldHit=12;SFX.shieldHit();addFloat(Math.max(PX+90,Math.min(PX+PW-90,ship.x)),ship.y-44,shield?'SHIELD 1 LEFT':'SHIELD DOWN',C.cyan,true);return;}
   ship.hull--;
-  if(ship.hull>0){ship.inv=40;shake=6;flash=3;SFX.hit();addFloat(ship.x,ship.y-40,ship.hull===1?'HULL CRITICAL':'HULL DAMAGED',C.red);return;}
+  if(ship.hull>0){ship.inv=40;shake=6;flash=3;SFX.hit();addFloat(Math.max(PX+90,Math.min(PX+PW-90,ship.x)),ship.y-44,ship.hull===1?'HULL CRITICAL 33%':'HULL DAMAGED 67%',C.red,true);return;}
   resetRockets();chain=0;chainT=0;lives--;ship.hull=ship.hullDisplay=lives>0?MAX_HULL:0;boom(ship.x,ship.y,true);SFX.die();shake=14;flash=8;ship.inv=90;wpn=Math.max(0,wpn-1);addFloat(ship.x,ship.y-40,'SHIP LOST',C.red);
   if(lives<=0){save.cores+=cores-bankedCores;bankedCores=cores;if(score>save.best)save.best=score;persist();mode='dead';deadSel=0;t=0;SFX.bossTheme(false);}}
 function dropFor(e){kills++;
@@ -1127,8 +1127,8 @@ function update(){t++;scroll=(scroll+1.8)%TH;
     if(wpn===0)sh(0,-32,0,-8);
     else if(wpn===1){sh(-14,-20,0,-8);sh(14,-20,0,-8);}
     else if(wpn===2){sh(0,-34,0,-9);sh(-16,-20,0,-8.5);sh(16,-20,0,-8.5);}
-    else if(wpn===3){sh(0,-34,0,-9);sh(-14,-22,-0.8,-8.4);sh(14,-22,0.8,-8.4);sh(-22,-14,-1.4,-7.6);sh(22,-14,1.4,-7.6);}
-    else{sh(-6,-34,0,-10);sh(6,-34,0,-10);sh(-18,-22,-0.7,-9);sh(18,-22,0.7,-9);sh(-26,-12,-1.5,-8);sh(26,-12,1.5,-8);}}
+    else if(wpn===3){sh(0,-34,0,-9);sh(-14,-22,-0.55,-8.4);sh(14,-22,0.55,-8.4);sh(-22,-14,-1,-7.6);sh(22,-14,1,-7.6);}
+    else{sh(-6,-34,0,-10);sh(6,-34,0,-10);sh(-18,-22,-0.5,-9);sh(18,-22,0.5,-9);sh(-26,-12,-1.05,-8);sh(26,-12,1.05,-8);}}
   updateRockets();
   for(const s of shots){s.x+=s.vx;s.y+=s.vy;}shots=shots.filter(s=>s.y>-12&&s.y<LH+20&&s.x>PX&&s.x<PX+PW);
   waveT--;
