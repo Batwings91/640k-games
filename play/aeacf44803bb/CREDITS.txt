@@ -110,3 +110,8 @@ Everything else — code, sound synthesis, procedural art, design — © 640K Ga
 (The music is Alexandr Zhelanov's under CC-BY 3.0, credited above; it is not ours.)
 
 Game UI bitmap alphabet: extended from the 640K Games Logo repository’s original 5x7 letterforms, with added lowercase, numerals and punctuation. Original studio artwork, © 640K Games.
+
+Lurker redesign and Spore Skimmer (assets/lurker_body.webp, assets/spore_skimmer.webp):
+  Original AI-assisted artwork generated with OpenAI for 640K Games, 2026-09-07.
+  No new third-party source assets; lurker reference was the existing studio illustration.
+  Transparent cutouts, trimmed/resized, quality-90 WebP. Prompts: docs/enemy-art-20260907.md.
