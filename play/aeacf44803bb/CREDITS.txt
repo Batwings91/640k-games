@@ -115,3 +115,8 @@ Lurker redesign and Spore Skimmer (assets/lurker_body.webp, assets/spore_skimmer
   Original AI-assisted artwork generated with OpenAI for 640K Games, 2026-09-07.
   No new third-party source assets; lurker reference was the existing studio illustration.
   Transparent cutouts, trimmed/resized, quality-90 WebP. Prompts: docs/enemy-art-20260907.md.
+
+Ground sentries (assets/ground_sentries.webp): original AI-assisted artwork generated
+  with OpenAI for 640K Games, 2026-09-07. Mechanical, infected and biological variants.
+  Transparent cells trimmed/resized and packed into quality-90 WebP; no third-party source pack.
+  Prompt and processing: docs/ground-art-20260907.md.
