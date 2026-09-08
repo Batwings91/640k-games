@@ -154,3 +154,8 @@ Seeder body (assets/seeder_body.webp):
   Trimmed/resized to 176x176, quality-86 WebP with alpha quality 100.
   Breathing and firing-organ glow drawn by game code. No third-party asset pack used.
   Prompt/provenance: docs/seeder-20260908.md.
+
+Seed Matriarch (assets/matriarch_body.webp):
+  Original AI-assisted artwork generated with OpenAI image generation for 640K Games, 2026-09-08.
+  Trimmed, resized to width 432, quality-86 WebP with alpha quality 100.
+  No third-party source pack. Prompt/provenance: docs/matriarch-20260908.md.
