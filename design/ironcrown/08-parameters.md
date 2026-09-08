@@ -169,15 +169,19 @@ incomes moved toward the far corners (Northumbria 3, Cumbria 2, Chester 3, Cornw
 and away from the east (Norfolk 2, Lincoln 2, Essex 1); temperaments placed so each earl has one
 easy neighbour and one hard; every AI builds mills and gathers larger stacks. After that:
 
+Second pass: a Pennine road (Northumbria to Lancaster) so the north has three ways out; Cumbria
+base 3; Aldric's leadership 3 to 2 and cunning 2 to 3; and from year eight every AI stages a
+siege engine with its largest stack, recruits there, and walks the train toward London through
+its own land, attacking at 1.2x rather than 1.6x.
+
 | Earl | Win rate | Note |
 |---|---|---|
-| Osric (Northumbria) | 9% | Two neighbours only; still the weak corner |
-| Aldric (Cornwall) | 36% | |
-| Berta (Norfolk) | 36% | |
-| Gwyn (Chester) | 19% | |
+| Osric (Northumbria) | 19% | Was 9% before the Pennine road and Cumbria 3 |
+| Aldric (Cornwall) | 31% | |
+| Berta (Norfolk) | 35% | |
+| Gwyn (Chester) | 16% | The weak corner now; Wales at its back pays little |
 
-Average end at year 12; 70% of games reach the twelve-year limit without a crown, because the AI
-rarely gathers the 30-plus points and engine that London needs. Two things to do next in the
-runner: give Northumbria a third road (to Lancaster) or a richer York, and teach the AI to mass
-for London from year eight. A human player is not the AI; these figures set the AI's shape, not
-the player's experience, which needs your hands on it.
+Endings over 300 games: 207 by the crown, 22 by treasury, 71 on time. Average end in year 10.6,
+with the bulk of games ending in years nine to eleven. That is the intended shape. Remaining
+work for the runner: Gwyn's corner, and the quarter of games that still run out the clock.
+A human player is not the AI; these figures set the AI's shape, not the player's experience.

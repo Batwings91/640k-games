@@ -11,7 +11,7 @@ shelved without waste. Durations are rough and assume one person part-time.
 | 3 | **Campaign proper**, 4 weeks | The prototype's loop survives real data | Hand-made map with features and works, seasons, save/load, the income ledger screen, victory and score |
 | 4 | **Contest screen**, 2 weeks | One points-and-odds screen serves battle, siege, tournament and raid | Itemised points, odds, stance or wager, itemised result; the catapult prototype is shelved |
 | 5 | **Lords and loyalty**, 4 weeks | The loyalty layer makes the map richer without slowing the turn | Eighteen lords in JSON with temperaments, submission, vassals, loyalty, defection, dispossessed lords, court deeds aimed at named lords |
-| 5b | **Cut scenes**, 3 weeks (art in milestone 7) | Scenes are sparing, skippable, and land | Scene system, text for all ~30 scenes, placeholder paintings |
+| 5b | **Cut scenes** (text done in the prototype: `scenes.js`; art in milestone 7) | Scenes are sparing, skippable, and land | Scene system, first-draft text for every lord and shared scene, placeholder frames, skip remembered |
 | 6 | **Real AI and balance**, 3 weeks | The game can be lost, and each lord plays differently | Personality planners, the headless balance runner, tuned tables |
 | 7 | **Art and music pass**, 4 to 6 weeks | It looks and sounds like the pitch | All screens painted to the palette, music per scene, transitions, title |
 | 8 | **Playtest via the unlisted link**, 3 weeks | Strangers can learn it without help | Ten external testers, a feedback form, a fix list |

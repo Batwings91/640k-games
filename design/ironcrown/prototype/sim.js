@@ -9,13 +9,13 @@ const COST={soldier:1,knight:8,engine:15,castle:20,mill:5,market:12,marriage:15}
 const STANCE=['cautious','steady','bold'];
 const EARLS=[
   {name:'Osric',title:'Earl of Northumbria',ai:'steward',lead:2,stew:2,cun:1,renown:2},
-  {name:'Aldric',title:'Earl of Cornwall',ai:'raider',lead:3,stew:1,cun:2,renown:1},
+  {name:'Aldric',title:'Earl of Cornwall',ai:'raider',lead:2,stew:1,cun:3,renown:1},
   {name:'Berta',title:'Countess of Norfolk',ai:'builder',lead:1,stew:2,cun:1,renown:3},
   {name:'Gwyn',title:'Earl of Chester',ai:'hoarder',lead:1,stew:2,cun:3,renown:2}];
 // name, lon, lat, terrain, feature, base income, lord name, temperament
 const SEATS=[
   ['Northumbria',-1.9,55.15,'hills','quarry',3,null,null],
-  ['Cumbria',-3.0,54.55,'hills',null,2,'Ketil Longfell','loyal'],
+  ['Cumbria',-3.0,54.55,'hills',null,3,'Ketil Longfell','loyal'],
   ['York',-1.1,54.0,'lowland','market',3,'Hild of Ouse','greedy'],
   ['Lancaster',-2.7,53.75,'forest',null,2,'Wulfstan Greycloak','fearful'],
   ['Lincoln',-0.4,53.2,'lowland','mill',2,'Edwin the Miller','proud'],
@@ -38,6 +38,7 @@ const COAST=[[-2.0,55.77],[-1.6,55.35],[-1.4,55.0],[-0.9,54.55],[-0.4,54.3],[-0.
   [-5.5,50.2],[-4.55,51.0],[-4.1,51.2],[-3.0,51.2],[-2.4,51.75],[-3.2,51.45],[-3.95,51.6],[-5.1,51.65],[-5.3,51.9],[-4.65,52.1],[-4.1,52.4],[-4.75,52.8],[-4.6,53.35],[-3.85,53.33],
   [-3.1,53.25],[-3.05,53.45],[-3.05,53.7],[-2.9,54.1],[-3.25,54.1],[-3.6,54.5],[-3.0,54.95],[-2.5,55.4]];
 const NOSEA=[['Powys','Devon'],['Gwynedd','Devon']];
+const EXTRA=[['Northumbria','Lancaster']]; // the Pennine road: gives the north a third way out
 const MAPX=8,MAPY=30,SC=560/5.9,LON0=-5.8,LAT0=55.8;
 const proj=([lon,lat])=>({x:MAPX+(lon-LON0)*SC*0.6,y:MAPY+(LAT0-lat)*SC});
 const SUBMIT_FACTOR={fearful:1.5,greedy:2,proud:3,loyal:Infinity,city:Infinity};
@@ -52,6 +53,7 @@ function buildMap(){
   const adj=cells.map(()=>new Set());
   cells.forEach((a,i)=>cells.forEach((b,j)=>{if(i<j){let shared=0;a.poly.forEach(p=>{if(b.poly.some(q=>Math.abs(p.x-q.x)<0.6&&Math.abs(p.y-q.y)<0.6))shared++;});
     const an=SEATS[i][0],bn=SEATS[j][0];if(shared>=2&&!NOSEA.some(([m,n])=>(an===m&&bn===n)||(an===n&&bn===m))){adj[i].add(j);adj[j].add(i);}}}));
+  EXTRA.forEach(([m,n])=>{const i=SEATS.findIndex(x=>x[0]===m),j=SEATS.findIndex(x=>x[0]===n);adj[i].add(j);adj[j].add(i);});
   return {cells,adj,coastPoly};
 }
 const MAP=buildMap();
@@ -59,7 +61,7 @@ const MAP=buildMap();
 function createGame(seed,playerLord){
   const G={seed0:seed,seed,player:playerLord==null?0:playerLord,turn:0,log:[],over:null,
     gold:[25,25,25,25],alive:[1,1,1,1],crownHeld:[0,0,0,0],richHeld:[0,0,0,0],
-    moved:false,deeds:0,knightBought:false,allies:{},pending:null,outlaws:[3,3,3,3]};
+    moved:false,deeds:0,knightBought:false,allies:{},pending:null,outlaws:[3,3,3,3],events:[],met:{}};
   G.lords=EARLS.map(e=>Object.assign({},e,{renownYear:e.renown}));
   G.prov=SEATS.map((s,i)=>({id:i,name:s[0],terrain:s[3],feature:s[4],base:s[5],owner:-1,vassal:false,
     levy:0,soldiers:0,knights:0,engines:0,castle:false,tax:1,unrest:0,mill:false,market:s[4]==='market',
@@ -70,8 +72,11 @@ function createGame(seed,playerLord){
   HOMES.forEach((id,l)=>{const p=G.prov[id];p.owner=l;p.soldiers=8;p.knights=1;p.castle=true;p.home=true;});
   SECOND.forEach(([id,l])=>{const p=G.prov[id];p.owner=l;p.vassal=true;p.lord.loyalty=7;p.levy=3;});
   say(G,'Spring, year 1. Take the neutral lands first; a weak lord may submit.');
+  if(G.player>=0)ev(G,{type:'open',actor:G.player});
   return G;
 }
+function ev(G,e){G.events.push(e);}
+function meet(G,l,p){if(p.lord&&!G.met[l+':'+p.id]){G.met[l+':'+p.id]=true;ev(G,{type:'meet',actor:l,prov:p.id});}}
 function rnd(G){G.seed=(G.seed*1103515245+12345)&0x7fffffff;return G.seed/0x7fffffff;}
 function say(G,s){G.log.push(s);if(G.log.length>120)G.log.shift();}
 function season(G){return SEASONS[G.turn%4];}
@@ -123,13 +128,14 @@ function march(G,from,to,leaveN,stance,accept){
   if(D.castle&&moveE<=0){say(G,'Walls at '+D.name+'. You need a siege engine.');return {ok:false};}
   const stack={soldiers:moveS,knights:moveK,engines:moveE,owner:att,levy:0};
   const as=strength(G,stack,true),ds=strength(G,D,false);
+  if(accept===undefined)meet(G,att,D);
   // submission offer from an independent lord
   if(D.owner<0&&D.lord&&!D.lord.dispossessed){
     const f=SUBMIT_FACTOR[D.lord.temper];
     if(as>=ds*f){
       if(accept===undefined)return {ok:false,offer:{from,to,leave:leaveN,stance,as,ds}};
       if(accept){A.soldiers=leaveN;A.knights=0;A.engines=0;D.owner=att;D.vassal=true;D.lord.loyalty=5;D.soldiers=moveS;D.knights=moveK;D.engines=moveE;
-        say(G,D.lord.name+' of '+D.name+' kneels to '+G.lords[att].name+'.');return {ok:true,submitted:true};}
+        say(G,D.lord.name+' of '+D.name+' kneels to '+G.lords[att].name+'.');ev(G,{type:'homage',actor:att,prov:to});return {ok:true,submitted:true};}
     }
   }
   const pWin=odds(as,ds,stance),won=rnd(G)<pWin,pct=Math.round(pWin*100)+'%';
@@ -140,7 +146,9 @@ function march(G,from,to,leaveN,stance,accept){
     A.soldiers=leaveN;A.knights=0;A.engines=0;conquer(G,D,att);
     D.soldiers=moveS-lostS;D.knights=moveK-lostK;D.engines=moveE;
     say(G,G.lords[att].name+' beats '+who+' ('+as+' v '+ds+', '+pct+'), loses '+(lostS+lostK)+'.');
+    if(D.castle)ev(G,{type:'siege_win',actor:att,target:D.owner,prov:to});
   }else{
+    if(D.castle)ev(G,{type:'siege_loss',actor:att,target:D.owner,prov:to});
     const f=D.castle?0.25:stance===0?0.25:stance===2?0.8:0.5;
     const lostS=Math.round(moveS*f),lostK=Math.round(moveK*f);
     A.soldiers-=lostS;A.knights-=lostK;
@@ -157,6 +165,7 @@ function conquer(G,p,l){
     // flees to the court of the living earl with the highest cunning who is not the conqueror
     let host=-1;for(let e=0;e<4;e++)if(e!==l&&G.alive[e]&&(host<0||G.lords[e].cun>G.lords[host].cun))host=e;
     p.lord.host=host;if(host>=0)say(G,p.lord.name+' flees to the court of '+G.lords[host].name+'.');
+    ev(G,{type:'conquest',actor:l,target:old,prov:p.id});
   }
   if(p.lord&&p.lord.temper==='loyal'&&old<0){G.lords[l].renown=Math.max(0,G.lords[l].renown-1);}
   p.owner=l;p.vassal=false;p.levy=0;p.soldiers=0;p.knights=0;p.engines=0;p.unrest=0;p.tax=1;
@@ -175,6 +184,7 @@ function tournament(G,l,r,stake,purse){
   if(won){G.gold[l]+=stake;G.gold[r]=Math.max(0,G.gold[r]-stake);L.renown=Math.min(10,L.renown+1);}
   else{G.gold[l]-=stake;G.gold[r]+=stake;L.renown=Math.max(0,L.renown-1);}
   say(G,'Tourney v '+R.name+': '+my+' v '+theirs+' ('+Math.round(p*100)+'%). '+(won?'Won':'Lost')+' '+stake+'g.');
+  const home=G.prov.find(q=>q.owner===l&&q.home)||G.prov.find(q=>q.owner===l);ev(G,{type:won?'tourney_win':'tourney_loss',actor:l,target:r,rival:r,prov:home?home.id:undefined,title:'The tournament'});
   return true;
 }
 function raid(G,from,to){
@@ -196,7 +206,7 @@ function marry(G,l,pid){
   if(G.gold[l]<COST.marriage){say(G,'A wedding costs 15 gold.');return false;}
   if(!neighbours(G,pid).some(q=>q.owner===l)){say(G,'You share no border with '+p.name+'.');return false;}
   G.gold[l]-=COST.marriage;p.owner=l;p.vassal=true;p.lord.loyalty=7;
-  say(G,'A wedding at '+p.name+'. '+p.lord.name+' is family now.');return true;
+  say(G,'A wedding at '+p.name+'. '+p.lord.name+' is family now.');ev(G,{type:'marriage',actor:l,prov:pid});return true;
 }
 function turnVassal(G,l,pid){
   const p=G.prov[pid],L=G.lords[l];
@@ -212,7 +222,7 @@ function pardon(G,l,pid){
   if(p.lord.temper==='proud'){if(L.renown<2){say(G,'Too little renown to pardon a proud lord.');return false;}L.renown-=2;}
   if(p.lord.temper==='greedy'){if(G.gold[l]<10){say(G,'A greedy lord wants 10 gold.');return false;}G.gold[l]-=10;}
   p.lord.dispossessed=false;p.lord.host=-1;p.vassal=true;p.lord.loyalty=7;p.levy=3;p.unrest=0;
-  say(G,p.lord.name+' is pardoned and kneels at '+p.name+'.');return true;
+  say(G,p.lord.name+' is pardoned and kneels at '+p.name+'.');ev(G,{type:'pardon',actor:l,prov:pid});return true;
 }
 function drawCard(G,l){
   const r=rnd(G),mine=G.prov.filter(p=>p.owner===l);
@@ -255,7 +265,7 @@ function endSeason(G){
     }else if(p.owner<0){
       if(p.feature==='crown'){if(p.levy<16)p.levy++;}else if(winter&&p.levy<8)p.levy++;
     }
-    if(winter&&!p.castle&&p.soldiers+p.knights>3){const lost=Math.max(1,Math.round(p.soldiers*0.1));p.soldiers-=lost;if(p.owner>=0)say(G,lost+' of '+G.lords[p.owner].name+'\'s men freeze at '+p.name+'.');}
+    if(winter&&!p.castle&&p.soldiers+p.knights>3){const lost=Math.max(1,Math.round(p.soldiers*0.1));p.soldiers-=lost;if(p.owner>=0){say(G,lost+' of '+G.lords[p.owner].name+'\'s men freeze at '+p.name+'.');if(!G.frozeOnce){G.frozeOnce=true;ev(G,{type:'frozen',actor:p.owner,prov:p.id});}}}
   });
   // loyalty
   G.prov.forEach(p=>{
@@ -266,12 +276,12 @@ function endSeason(G){
     ld.loyalty=Math.max(0,Math.min(10,ld.loyalty));
     if(ld.loyalty<=0){const old=p.owner;let best=-1,bs=0;neighbours(G,p.id).forEach(q=>{if(q.owner>=0&&q.owner!==old){const s=armyPoints(G,q.owner);if(s>bs){bs=s;best=q.owner;}}});
       p.owner=best;p.vassal=best>=0;ld.loyalty=5;p.soldiers=0;p.knights=0;p.engines=0;
-      say(G,ld.name+' of '+p.name+' renounces '+G.lords[old].name+(best>=0?' for '+G.lords[best].name:'')+'.');if(count(G,old)===0)G.alive[old]=0;}
+      say(G,ld.name+' of '+p.name+' renounces '+G.lords[old].name+(best>=0?' for '+G.lords[best].name:'')+'.');ev(G,{type:'defection',actor:old,target:old,prov:p.id,newowner:best});if(count(G,old)===0)G.alive[old]=0;}
   });
   G.prov.forEach(p=>{p.justRevolted=false;});
   // dispossessed lords return
   G.prov.forEach(p=>{const ld=p.lord;if(!ld||!ld.dispossessed||ld.host<0||!G.alive[ld.host]||p.owner<0)return;
-    if(p.unrest>=2&&rnd(G)<0.1*G.lords[ld.host].cun){say(G,ld.name+' returns and '+p.name+' rises for them!');revolt(G,p);ld.dispossessed=false;ld.host=-1;ld.loyalty=5;}});
+    if(p.unrest>=2&&rnd(G)<0.1*G.lords[ld.host].cun){say(G,ld.name+' returns and '+p.name+' rises for them!');ev(G,{type:'returned',actor:p.owner,target:p.owner,prov:p.id});revolt(G,p);ld.dispossessed=false;ld.host=-1;ld.loyalty=5;}});
   G.turn++;G.moved=false;G.knightBought=false;G.deeds=0;G.pending=null;
   if(G.turn%4===0){G.prov.forEach(p=>{if(p.feature==='shrine'&&p.owner>=0)G.lords[p.owner].renown=Math.min(10,G.lords[p.owner].renown+1);});
     G.lords.forEach((L,l)=>{const d=L.renown-L.renownYear;if(d!==0)G.prov.forEach(p=>{if(p.vassal&&p.owner===l)p.lord.loyalty=Math.max(0,Math.min(10,p.lord.loyalty+(d>0?1:-1)));});L.renownYear=L.renown;});}
@@ -287,15 +297,20 @@ function endSeason(G){
   if(living.length===1)G.over={l:living[0],how:'last'};
   if(G.player>=0&&!G.alive[G.player]&&!G.over)G.over={l:-1,how:'dead'};
   if(G.turn>=48&&!G.over){let b=living[0];living.forEach(l=>{if(income(G,l)>income(G,b))b=l;});G.over={l:b,how:'time'};}
+  if(G.over&&G.player>=0){const o=G.over,me=G.player;
+    if(o.l===me)ev(G,{type:o.how==='time'?'time_win':'crown',actor:me,prov:CROWN,title:o.how==='time'?'Twelve years':'The crown'});
+    else ev(G,{type:o.how==='time'?'time_loss':'defeat',actor:me,winner:o.l,prov:CROWN,title:o.how==='time'?'Twelve years':'The end'});}
   if(G.player>=0)say(G,'— '+season(G)+', year '+year(G)+'. Income '+income(G,G.player)+', treasury '+G.gold[G.player]+' —');
 }
 function revolt(G,p){const o=p.owner;p.owner=-1;p.vassal=false;p.levy=4;p.soldiers=0;p.knights=0;p.engines=0;p.unrest=0;p.tax=1;p.justRevolted=true;if(p.lord&&p.lord.dispossessed){p.lord.dispossessed=false;p.lord.host=-1;}if(count(G,o)===0)G.alive[o]=0;}
 
 // BFS through own land from `from` to the nearest province not owned by l; returns the first step
-function nextStep(G,l,from){
+function nextStep(G,l,from,goal){
+  goal=goal||(pn=>pn.owner!==l);
   const prev={};prev[from]=null;const q=[from];
   while(q.length){const c=q.shift();for(const n of MAP.adj[c]){if(n in prev)continue;prev[n]=c;const pn=G.prov[n];
-    if(pn.owner!==l){let x=n;while(prev[x]!==from&&prev[x]!==null)x=prev[x];return x===n?n:x;}q.push(n);}}
+    if(goal(pn)){let x=n;while(prev[x]!==from&&prev[x]!==null)x=prev[x];return x===n?n:x;}
+    if(pn.owner===l)q.push(n);}}
   return null;
 }
 // ---- AI ----
@@ -310,7 +325,8 @@ function aiTurn(G,l){
   const reserve=pers==='hoarder'?12:pers==='builder'?8:3;
   const kn=mine.reduce((a,p)=>a+p.knights,0);
   if(kn<2&&income(G,l)>=5&&G.gold[l]-reserve>=COST.knight&&base.castle){base.knights++;G.gold[l]-=COST.knight;}
-  if(base.castle){const n=Math.max(0,Math.min(20,G.gold[l]-reserve));base.soldiers+=n;G.gold[l]-=n;}
+  const rec=(G.turn>=28&&mine.filter(p=>p.castle&&p.soldiers>0).sort((a,b)=>b.soldiers-a.soldiers)[0])||base;
+  if(rec.castle){const n=Math.max(0,Math.min(20,G.gold[l]-reserve));rec.soldiers+=n;G.gold[l]-=n;}
   // deeds: pardon a threat, marry when able, turn a vassal, else nothing
   let deeds=0;const max=maxDeeds(G,l);
   const threat=own.find(p=>p.lord&&p.lord.dispossessed&&p.unrest>=1);
@@ -318,6 +334,11 @@ function aiTurn(G,l){
   if(deeds<max&&G.lords[l].renown>=5&&G.gold[l]>=COST.marriage+10){const t=G.prov.find(p=>p.owner<0&&p.lord&&!p.lord.dispossessed&&p.lord.temper!=='city'&&neighbours(G,p.id).some(q=>q.owner===l));if(t&&marry(G,l,t.id))deeds++;}
   if(deeds<max&&pers==='hoarder'){const t=G.prov.find(p=>p.vassal&&p.owner>=0&&p.owner!==l&&p.lord.loyalty<=4&&neighbours(G,p.id).some(q=>q.owner===l));if(t&&turnVassal(G,l,t.id))deeds++;}
   if(deeds<max&&pers==='raider'){const from=own.find(p=>p.knights>=2);if(from){const t=neighbours(G,from.id).find(q=>q.owner>=0&&q.owner!==l&&G.gold[q.owner]>=12);if(t&&raid(G,from.id,t.id))deeds++;}}
+  const crownP=G.prov[CROWN];const late=G.turn>=28&&crownP.owner!==l;
+  if(late){ // stage an engine where the army is
+    const big=mine.filter(p=>p.soldiers+p.knights>0).sort((a,b)=>strength(G,b,true)-strength(G,a,true))[0];
+    if(big&&!mine.some(p=>p.engines>0)&&G.gold[l]>=COST.engine){big.engines++;G.gold[l]-=COST.engine;}
+  }
   if(season(G)==='Winter')return;
   const from=mine.filter(p=>p.soldiers+p.knights>0).sort((a,b)=>strength(G,b,true)-strength(G,a,true))[0];if(!from)return;
   const leave=from.castle?2:3;const stack={soldiers:from.soldiers-leave,knights:from.knights,engines:from.engines,owner:l,levy:0};
@@ -329,6 +350,10 @@ function aiTurn(G,l){
   if(best){const stance=(pers==='raider'&&as>=best.ds*1.5)?2:1;const r=march(G,from.id,best.t.id,leave,stance);
     if(r.offer)march(G,from.id,best.t.id,leave,stance,!(pers==='raider'&&r.offer.as>=r.offer.ds*3));return;}
   // nothing worth attacking next door: walk the army through own land toward the nearest foreign province
+  if(late&&from.engines>0){ // walk the siege train toward London through own land
+    const step=nextStep(G,l,from.id,pn=>pn.id===CROWN);
+    if(step!=null&&G.prov[step].owner===l){march(G,from.id,step,leave,1);return;}
+  }
   if(targets.length===0||as>Math.min(...targets.map(o=>o.ds))*0.8){
     const step=nextStep(G,l,from.id);if(step!=null&&G.prov[step].owner===l){march(G,from.id,step,leave,1);return;}
   }

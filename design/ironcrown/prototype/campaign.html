@@ -12,6 +12,7 @@
 <body>
 <canvas id="c" width="800" height="600"></canvas>
 <script src="sim.js"></script>
+<script src="scenes.js"></script>
 <script>
 // Ironcrown campaign prototype, UI layer. All rules live in sim.js (shared with balance.js).
 // 800x600, colours snapped to the VGA DAC. England and Wales, 18 provinces, 18 lords.
@@ -29,14 +30,19 @@ const seed0=(+new URLSearchParams(location.search).get('seed'))||(Date.now()&0xf
 
 // ---- UI state ----
 let G=null;
-const U={phase:'choose',sel:null,mode:null,stance:1,leave:2,rival:1,stake:10,purse:5,offer:null};
+const U={phase:'choose',sel:null,mode:null,stance:1,leave:2,rival:1,stake:10,purse:5,offer:null,scenes:[],after:null,skipAll:false};
+try{U.skipAll=localStorage.getItem('ironcrown.skipScenes')==='1';}catch(e){}
+function setSkip(v){U.skipAll=v;try{localStorage.setItem('ironcrown.skipScenes',v?'1':'0');}catch(e){}}
+// Pull scenes from sim events. Called after every player action and after the season ends.
+function flushScenes(next){const sc=Scenes.fromEvents(G.events,G,me());G.events.length=0;if(!sc.length||U.skipAll){if(next)next();return;}U.scenes=sc;U.sceneTotal=sc.length;U.after=next||null;U.phase='scene';}
+function nextScene(){U.scenes.shift();if(U.scenes.length)return;U.phase='play';const f=U.after;U.after=null;if(f)f();}
 // mode: null | 'march' | 'raid' | 'marry' | 'turn' | 'pardon'
 
-function start(earl){G=Sim.createGame(seed0,earl);U.phase='play';U.rival=[0,1,2,3].find(l=>l!==earl);U.sel=Sim.SEATS.findIndex((s,i)=>G.prov[i].owner===earl&&G.prov[i].home);}
+function start(earl){G=Sim.createGame(seed0,earl);U.phase='play';U.rival=[0,1,2,3].find(l=>l!==earl);U.sel=Sim.SEATS.findIndex((s,i)=>G.prov[i].owner===earl&&G.prov[i].home);flushScenes();}
 function me(){return G.player;}
 function canAct(p){return p&&p.owner===me()&&U.phase==='play';}
 function deedsLeft(){return Sim.maxDeeds(G,me())-G.deeds;}
-function useDeed(ok){if(ok)G.deeds++;U.mode=null;}
+function useDeed(ok){if(ok)G.deeds++;U.mode=null;flushScenes();}
 
 function doMarch(to){
   const from=U.sel,p=G.prov[from];
@@ -45,11 +51,12 @@ function doMarch(to){
   if(!Sim.adj(from,to)){Sim.say(G,'Not adjacent.');return;}
   const leave=Math.min(U.leave,p.soldiers);
   const r=Sim.march(G,from,to,leave,U.stance);
-  if(r.offer){U.offer=r.offer;U.phase='offer';return;}
+  if(r.offer){U.offer=r.offer;flushScenes(()=>{U.phase='offer';});if(U.phase!=='scene')U.phase='offer';return;}
   if(r.ok){G.moved=true;U.sel=to;}
+  flushScenes();
 }
-function answerOffer(accept){const o=U.offer;U.phase='play';U.offer=null;const r=Sim.march(G,o.from,o.to,o.leave,o.stance,accept);if(r.ok){G.moved=true;U.sel=o.to;}}
-function endSeason(){if(U.phase!=='play')return;Sim.endSeason(G);if(G.over)U.phase='over';}
+function answerOffer(accept){const o=U.offer;U.phase='play';U.offer=null;const r=Sim.march(G,o.from,o.to,o.leave,o.stance,accept);if(r.ok){G.moved=true;U.sel=o.to;}flushScenes();}
+function endSeason(){if(U.phase!=='play')return;Sim.endSeason(G);flushScenes(()=>{if(G.over)U.phase='over';});if(U.phase==='play'&&G.over)U.phase='over';}
 
 // ---- input ----
 let buttons=[];
@@ -72,6 +79,7 @@ function hit(x,y){
 }
 cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect();hit((e.clientX-r.left)/r.width*W,(e.clientY-r.top)/r.height*H);});
 addEventListener('keydown',e=>{
+  if(U.phase==='scene'){if(e.key==='Escape'){setSkip(true);U.scenes=[];nextScene();}else nextScene();return;}
   if(U.phase!=='play')return;
   if(e.key==='Enter')endSeason();
   const p=U.sel!==null?G.prov[U.sel]:null;
@@ -202,6 +210,7 @@ function draw(){
     ['Every province has a lord. March on a weak one and they may kneel and become your vassal:','their land pays you and defends itself, and their loyalty (0 to 10) is on the map.',
      'Refuse or beat them and the lord is dispossessed, flees to a rival, and may come back.','Every fight: points v points, odds shown, your stance sets the risk. One march a season,',
      'one deed (two from six lands). Winter freezes armies left outside walls.'].forEach((s,i)=>text(s,W/2,420+i*18,P.ink,'center',SMALL));
+    button(300,505,200,22,U.skipAll?'Scenes: off':'Scenes: on',()=>setSkip(!U.skipAll),!U.skipAll);
     finish();return;
   }
   drawMap();
@@ -223,6 +232,16 @@ function draw(){
     text('Refuse: battle, and conquest if you win.',W/2,286,P.ink,'center',SMALL);
     button(220,320,150,28,'Accept homage',()=>answerOffer(true),true);button(430,320,150,28,'Refuse, attack',()=>answerOffer(false),false);
   }
+  if(U.phase==='scene'&&U.scenes.length){
+    const sc=U.scenes[0];box(80,120,640,300);
+    // placeholder painting: a framed portrait with initials
+    rect(100,140,120,150,P.ink);rect(104,144,112,142,P.parch);text(sc.initials||'?',160,196,P.ink,'center','bold 28px monospace');
+    text(sc.title,240,146,P.red);
+    sc.lines.forEach((l,i)=>wrap(l,240,176+i*44,460,P.ink));
+    button(100,370,200,24,'Continue  (any key)',nextScene,true);
+    button(420,370,200,24,'Skip all scenes  (Esc)',()=>{setSkip(true);U.scenes=[];nextScene();},false);
+    text('Scene '+(U.sceneTotal-U.scenes.length+1)+' of '+U.sceneTotal+'. Placeholder painting.',W/2,346,P.grey,'center',SMALL);
+  }
   if(U.phase==='over'){
     box(150,200,500,180);const o=G.over;
     const how={crown:'holds London and the crown',treasury:'commands the wealth of England',last:'is the last lord standing',time:'has the greatest income after twelve years'}[o.how]||'';
@@ -233,6 +252,7 @@ function draw(){
   }
   finish();
 }
+function wrap(s,x,y,w,c){g.font=SMALL;const words=s.split(' ');let line='',yy=y;words.forEach(wd=>{const t=line?line+' '+wd:wd;if(g.measureText(t).width>w){text(line,x,yy,c,'left',SMALL);line=wd;yy+=15;}else line=t;});if(line)text(line,x,yy,c,'left',SMALL);}
 function finish(){let k=Math.min(innerWidth/W,innerHeight/H);if(k>=2)k=Math.floor(k);const cw=Math.round(W*k),ch=Math.round(H*k);if(cv.width!==cw){cv.width=cw;cv.height=ch;}ctx.imageSmoothingEnabled=false;ctx.drawImage(off,0,0,cw,ch);}
 function frame(){draw();requestAnimationFrame(frame);}requestAnimationFrame(frame);
 </script>
