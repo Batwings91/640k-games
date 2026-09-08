@@ -122,6 +122,7 @@ function march(G,from,to,leaveN,stance,accept){
     D.soldiers+=moveS;D.knights+=moveK;D.engines+=moveE;A.soldiers=leaveN;A.knights=0;A.engines=0;
     if(D.vassal){D.lord.loyalty=Math.max(0,D.lord.loyalty-2);say(G,G.lords[att].name+' marches through '+D.name+'; '+D.lord.name+' resents it.');}
     else say(G,G.lords[att].name+' marches to '+D.name+'.');
+    ev(G,{type:'move',actor:att,prov:to,from});
     return {ok:true};
   }
   if(D.owner>=0&&G.allies[key(att,D.owner)]>G.turn){say(G,'You are sworn to peace with '+G.lords[D.owner].name+'.');return {ok:false};}
@@ -146,8 +147,10 @@ function march(G,from,to,leaveN,stance,accept){
     A.soldiers=leaveN;A.knights=0;A.engines=0;conquer(G,D,att);
     D.soldiers=moveS-lostS;D.knights=moveK-lostK;D.engines=moveE;
     say(G,G.lords[att].name+' beats '+who+' ('+as+' v '+ds+', '+pct+'), loses '+(lostS+lostK)+'.');
+    ev(G,{type:'battle',actor:att,target:D.owner,prov:to,won:true,as,ds});
     if(D.castle)ev(G,{type:'siege_win',actor:att,target:D.owner,prov:to});
   }else{
+    ev(G,{type:'battle',actor:att,target:D.owner,prov:to,won:false,as,ds});
     if(D.castle)ev(G,{type:'siege_loss',actor:att,target:D.owner,prov:to});
     const f=D.castle?0.25:stance===0?0.25:stance===2?0.8:0.5;
     const lostS=Math.round(moveS*f),lostK=Math.round(moveK*f);
@@ -261,7 +264,7 @@ function endSeason(G){
       if(p.tax<=1&&p.unrest<3&&p.levy<3&&!winter)p.levy++; // local militia
     }else if(p.owner>=0&&p.vassal){
       if(p.levy<6&&!winter)p.levy++; // a lord keeps retainers
-      if(p.unrest>=5){say(G,p.name+' revolts against '+G.lords[p.owner].name+'!');revolt(G,p);}
+      if(p.unrest>=5){say(G,p.name+' revolts against '+G.lords[p.owner].name+'!');ev(G,{type:'revolt',actor:p.owner,target:p.owner,prov:p.id});revolt(G,p);}
     }else if(p.owner<0){
       if(p.feature==='crown'){if(p.levy<16)p.levy++;}else if(winter&&p.levy<8)p.levy++;
     }
@@ -360,6 +363,9 @@ function aiTurn(G,l){
   if(neighbours(G,from.id).some(t=>t.owner!==l&&t.castle)&&G.gold[l]>=COST.engine+5&&from.engines===0){from.engines++;G.gold[l]-=COST.engine;}
 }
 
-const Sim={SEASONS,COST,STANCE,EARLS,SEATS,CROWN,MAP,createGame,season,year,adj,neighbours,count,maxDeeds,provIncome,upkeep,income,totalIncome,armyPoints,strength,odds,lordName,march,tournament,raid,ally,marry,turnVassal,pardon,drawCard,buy,endSeason,aiTurn,say,key};
+function preview(G,from,to,moveS,stance){const A=G.prov[from],D=G.prov[to];const stack={soldiers:moveS,knights:A.knights,engines:A.engines,owner:A.owner,levy:0};const as=strength(G,stack,true),ds=strength(G,D,false);
+  const f=D.owner<0&&D.lord&&!D.lord.dispossessed?SUBMIT_FACTOR[D.lord.temper]:Infinity;
+  return {as,ds,odds:odds(as,ds,stance),needEngine:D.castle&&A.engines<=0,mayKneel:as>=ds*f,ally:D.owner>=0&&G.allies[key(A.owner,D.owner)]>G.turn,own:D.owner===A.owner};}
+const Sim={preview,SEASONS,COST,STANCE,EARLS,SEATS,CROWN,MAP,createGame,season,year,adj,neighbours,count,maxDeeds,provIncome,upkeep,income,totalIncome,armyPoints,strength,odds,lordName,march,tournament,raid,ally,marry,turnVassal,pardon,drawCard,buy,endSeason,aiTurn,say,key};
 if(typeof module!=='undefined'&&module.exports)module.exports=Sim;else root.Sim=Sim;
 })(typeof window!=='undefined'?window:globalThis);
