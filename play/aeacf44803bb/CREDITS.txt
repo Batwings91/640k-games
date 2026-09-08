@@ -167,3 +167,5 @@ Needle creature (needle_body.webp): original AI-assisted artwork generated with 
 Tendril Warden (warden_body.webp): original AI-assisted artwork generated with OpenAI under 640K Games direction, 2026-09-08. No third-party pack. See docs/warden-20260908.md.
 
 Brood Heart background (world_brood.webp): original AI-assisted OpenAI artwork under 640K Games direction, 2026-09-08. No third-party pack. See docs/brood-heart-20260908.md.
+
+Colony creature (colony_body.webp): original AI-assisted OpenAI artwork under 640K Games direction, 2026-09-08. No third-party pack. See docs/colony-20260908.md.
