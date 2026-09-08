@@ -7,7 +7,7 @@ shelved without waste. Durations are rough and assume one person part-time.
 |---|---|---|---|
 | 0 | **Design lock, first pass** (this folder, then your references and keep/cut list) | We agree on what the game is | Updated docs, a one-page pitch, a palette and three reference images |
 | 1 | **Paper prototype** of the campaign turn, 2 weeks | The map layer is interesting on its own | A printable map, counters, and the turn rules on one page; three play sessions with notes |
-| 2 | **Map and economy prototype** (done first, `prototype/campaign.html`) | Land, income and armies are fun with nothing else | Browser map, provinces, income, tax, garrisons, recruit, move, auto-battle, AI rivals, victory |
+| 2 | **Campaign prototype** (done: `prototype/campaign.html` on `sim.js`, with `balance.js`) | Land, income and lords are fun with nothing else | England, earl choice, income, tax, garrisons, contests, the loyalty layer, deeds, winter, three victories, a headless balance runner |
 | 3 | **Campaign proper**, 4 weeks | The prototype's loop survives real data | Hand-made map with features and works, seasons, save/load, the income ledger screen, victory and score |
 | 4 | **Contest screen**, 2 weeks | One points-and-odds screen serves battle, siege, tournament and raid | Itemised points, odds, stance or wager, itemised result; the catapult prototype is shelved |
 | 5 | **Lords and loyalty**, 4 weeks | The loyalty layer makes the map richer without slowing the turn | Eighteen lords in JSON with temperaments, submission, vassals, loyalty, defection, dispossessed lords, court deeds aimed at named lords |

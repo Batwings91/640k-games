@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ironcrown — campaign prototype (England, 800x600)</title>
+<title>Ironcrown — campaign prototype</title>
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden}
   canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);cursor:default}
@@ -11,255 +11,74 @@
 </head>
 <body>
 <canvas id="c" width="800" height="600"></canvas>
+<script src="sim.js"></script>
 <script>
-// Ironcrown campaign prototype. Milestone 2 of design/ironcrown/05-roadmap.md.
-// 800x600, colours snapped to the VGA DAC (6 bits per channel), a map of England and Wales.
-// Proves: taking land and growing income is fun with nothing else. No mini-games; battles auto-resolve.
-// Placeholder art. Mouse or touch: click a province, use the panel on the right, End season.
+// Ironcrown campaign prototype, UI layer. All rules live in sim.js (shared with balance.js).
+// 800x600, colours snapped to the VGA DAC. England and Wales, 18 provinces, 18 lords.
 'use strict';
 const W=800,H=600;
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
 const off=document.createElement('canvas');off.width=W;off.height=H;const g=off.getContext('2d');
-
-// ---- palette: every colour is snapped to 6 bits per channel, as the VGA DAC did ----
 function vga(hex){const n=parseInt(hex.slice(1),16);const q=v=>((v>>2)<<2)|((v>>2)>>4);return '#'+[16,8,0].map(s=>q((n>>s)&255).toString(16).padStart(2,'0')).join('');}
 const P={};
 Object.entries({ink:'#101018',paper:'#f0e0b8',parch:'#d8c89c',gold:'#f0c040',red:'#c02020',white:'#fcfcfc',grey:'#585860',lgrey:'#b0b0b8',
   sea1:'#183060',sea2:'#2c4c8c',sea3:'#4870b0',neutral:'#8c7c5c',neutral2:'#a89468',border:'#3c2c1c',road:'#e0d0a0',
   hill:'#6c5c3c',forest:'#2c5c2c',marsh:'#4c6c5c'}).forEach(([k,v])=>P[k]=vga(v));
-const LORDS=[{name:'Osric',title:'Earl of Northumbria',c:vga('#3050d0'),c2:vga('#6080f0'),ai:null,lead:2,stew:2,cun:1,renown:2},
-  {name:'Aldric',title:'Earl of Cornwall',c:vga('#c03030'),c2:vga('#e06060'),ai:'raider',lead:3,stew:1,cun:2,renown:1},
-  {name:'Berta',title:'Countess of Norfolk',c:vga('#30a040'),c2:vga('#60c070'),ai:'builder',lead:1,stew:3,cun:1,renown:3},
-  {name:'Gwyn',title:'Earl of Chester',c:vga('#d0a020'),c2:vga('#f0c860'),ai:'hoarder',lead:1,stew:2,cun:3,renown:2}];
-const SEASONS=['Spring','Summer','Autumn','Winter'];
-const COST={soldier:1,knight:8,engine:15,castle:20,mill:5,market:12};
+const EARLCOL=[[vga('#3050d0'),vga('#6080f0')],[vga('#c03030'),vga('#e06060')],[vga('#30a040'),vga('#60c070')],[vga('#d0a020'),vga('#f0c860')]];
+const seed0=(+new URLSearchParams(location.search).get('seed'))||(Date.now()&0xffff);
 
-let seed=(+new URLSearchParams(location.search).get('seed'))||(Date.now()&0xffff);const seed0=seed;
-function rnd(){seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;}
-function ri(a,b){return a+Math.floor(rnd()*(b-a+1));}
+// ---- UI state ----
+let G=null;
+const U={phase:'choose',sel:null,mode:null,stance:1,leave:2,rival:1,stake:10,purse:5,offer:null};
+// mode: null | 'march' | 'raid' | 'marry' | 'turn' | 'pardon'
 
-// ---- England and Wales: a hand-traced coastline (lon,lat) and province seats; Voronoi cells clipped to the coast ----
-const COAST=[[-2.0,55.77],[-1.6,55.35],[-1.4,55.0],[-0.9,54.55],[-0.4,54.3],[-0.1,54.1],[0.1,53.6],[0.35,53.15],[0.2,52.85],[0.5,52.95],[1.3,52.93],[1.75,52.48],
-  [1.35,51.95],[1.15,51.8],[0.9,51.5],[1.45,51.38],[1.32,51.12],[0.97,50.92],[0.25,50.73],[-0.8,50.72],[-1.6,50.65],[-2.45,50.52],[-3.65,50.22],[-4.4,50.3],[-5.2,49.96],[-5.7,50.07],
-  [-5.5,50.2],[-4.55,51.0],[-4.1,51.2],[-3.0,51.2],[-2.4,51.75],[-3.2,51.45],[-3.95,51.6],[-5.1,51.65],[-5.3,51.9],[-4.65,52.1],[-4.1,52.4],[-4.75,52.8],[-4.6,53.35],[-3.85,53.33],
-  [-3.1,53.25],[-3.05,53.45],[-3.05,53.7],[-2.9,54.1],[-3.25,54.1],[-3.6,54.5],[-3.0,54.95],[-2.5,55.4]];
-const MAPX=8,MAPY=30,SC=560/5.9,LON0=-5.8,LAT0=55.8;
-const proj=([lon,lat])=>({x:MAPX+(lon-LON0)*SC*0.6,y:MAPY+(LAT0-lat)*SC});
-const coastPoly=COAST.map(proj);
-// name, lon, lat, terrain, feature, base income
-const SEATS=[
-  ['Northumbria',-1.9,55.15,'hills','quarry',2],['Cumbria',-3.0,54.55,'hills',null,1],['York',-1.1,54.0,'lowland','market',3],['Lancaster',-2.7,53.75,'forest',null,2],
-  ['Lincoln',-0.4,53.2,'lowland','mill',3],['Chester',-2.9,53.15,'lowland','port',2],['Nottingham',-1.2,52.95,'forest',null,2],['Gwynedd',-3.9,52.9,'hills',null,1],
-  ['Powys',-3.25,52.25,'hills','shrine',1],['Norfolk',0.9,52.65,'lowland','port',3],['Warwick',-1.6,52.4,'lowland','market',3],['Gloucester',-2.35,51.85,'lowland','mill',3],
-  ['Wessex',-1.4,51.1,'lowland','shrine',3],['Cornwall',-4.7,50.4,'hills','quarry',1],['Devon',-3.7,50.75,'forest',null,2],['London',-0.1,51.5,'lowland','crown',5],
-  ['Kent',0.8,51.2,'coast','port',3],['Essex',0.85,52.0,'marsh',null,2]];
-const CROWN=15,HOMES=[0,13,9,5];
-function clipHalf(poly,a,b){ // keep points nearer a than b
-  const mx=(a.x+b.x)/2,my=(a.y+b.y)/2,dx=b.x-a.x,dy=b.y-a.y;const side=p=>(p.x-mx)*dx+(p.y-my)*dy;
-  const out=[];for(let i=0;i<poly.length;i++){const p=poly[i],q=poly[(i+1)%poly.length],sp=side(p),sq=side(q);
-    if(sp<=0)out.push(p);if((sp<0)!==(sq<0)){const t=sp/(sp-sq);out.push({x:p.x+(q.x-p.x)*t,y:p.y+(q.y-p.y)*t});}}
-  return out;
-}
-const prov=SEATS.map((s,i)=>{const c=proj([s[1],s[2]]);let poly=coastPoly;SEATS.forEach((o,j)=>{if(j!==i)poly=clipHalf(poly,c,proj([o[1],o[2]]));});
-  let cx=0,cy=0;poly.forEach(p=>{cx+=p.x;cy+=p.y;});cx/=poly.length;cy/=poly.length;
-  return {id:i,name:s[0],terrain:s[3],feature:s[4],base:s[5],poly,cx:Math.round((cx+c.x)/2),cy:Math.round((cy+c.y)/2),owner:-1,soldiers:ri(2,5),knights:0,engines:0,castle:false,tax:1,unrest:0,mill:false,market:s[4]==='market'};});
-const NOSEA=[['Powys','Devon'],['Gwynedd','Devon']];
-const ADJ=prov.map(()=>new Set());
-prov.forEach(a=>prov.forEach(b=>{if(a.id<b.id){let shared=0;a.poly.forEach(p=>{if(b.poly.some(q=>Math.abs(p.x-q.x)<0.6&&Math.abs(p.y-q.y)<0.6))shared++;});if(shared>=2&&!NOSEA.some(([m,n])=>(a.name===m&&b.name===n)||(a.name===n&&b.name===m))){ADJ[a.id].add(b.id);ADJ[b.id].add(a.id);}}}));
-prov[CROWN].soldiers=10;prov[CROWN].castle=true; // London: walled, garrisoned by the city, needs an engine
-HOMES.forEach((id,l)=>{const p=prov[id];p.owner=l;p.soldiers=8;p.knights=1;p.castle=true;p.home=true;});
-// far corners start with a second province (see 08-parameters.md)
-[[1,0],[14,1]].forEach(([id,l])=>{const p=prov[id];p.owner=l;p.soldiers=3;});
-function adj(a,b){return ADJ[a].has(b);}
-function neighbours(i){return [...ADJ[i]].map(j=>prov[j]);}
+function start(earl){G=Sim.createGame(seed0,earl);U.phase='play';U.rival=[0,1,2,3].find(l=>l!==earl);U.sel=Sim.SEATS.findIndex((s,i)=>G.prov[i].owner===earl&&G.prov[i].home);}
+function me(){return G.player;}
+function canAct(p){return p&&p.owner===me()&&U.phase==='play';}
+function deedsLeft(){return Sim.maxDeeds(G,me())-G.deeds;}
+function useDeed(ok){if(ok)G.deeds++;U.mode=null;}
 
-// ---- state ----
-const G={turn:0,gold:[25,25,25,25],alive:[1,1,1,1],sel:null,moved:false,leave:2,log:[],crownHeld:[0,0,0,0],richHeld:[0,0,0,0],over:null,knightBought:false,phase:'intro',armMove:false,stance:1,deed:false,rival:1,stake:10,purse:5,last:''};
-const STANCE=['cautious','steady','bold'];
-function season(){return SEASONS[G.turn%4];}
-function year(){return 1+Math.floor(G.turn/4);}
-function say(s){G.log.push(s);if(G.log.length>80)G.log.shift();}
-
-// ---- economy ----
-function provIncome(p){
-  if(p.owner<0)return 0;
-  const seasonMod=season()==='Autumn'?2:season()==='Winter'?0.5:1;
-  let v=Math.floor(p.base*p.tax*seasonMod);
-  if(p.market)v+=2;if(p.mill)v+=1+(season()==='Autumn'?1:0);if(p.feature==='port')v+=1;
-  return v;
+function doMarch(to){
+  const from=U.sel,p=G.prov[from];
+  if(G.moved){Sim.say(G,'One army marches a season.');return;}
+  if(Sim.season(G)==='Winter'){Sim.say(G,'No marching in winter.');return;}
+  if(!Sim.adj(from,to)){Sim.say(G,'Not adjacent.');return;}
+  const leave=Math.min(U.leave,p.soldiers);
+  const r=Sim.march(G,from,to,leave,U.stance);
+  if(r.offer){U.offer=r.offer;U.phase='offer';return;}
+  if(r.ok){G.moved=true;U.sel=to;}
 }
-function upkeep(l){let u=0,castles=0;prov.forEach(p=>{if(p.owner===l){u+=p.knights+p.engines;if(p.castle)castles++;}});return u+Math.max(0,castles-1);}
-function income(l){let v=0;prov.forEach(p=>{if(p.owner===l)v+=provIncome(p);});v+=Math.floor(count(l)/4)*LORDS[l].stew;v-=upkeep(l);if(!prov.some(p=>p.owner===l&&p.home&&p.castle))v=Math.floor(v/2);return v;}
-function totalIncome(){let t=0;for(let l=0;l<4;l++)t+=Math.max(0,income(l));return t;}
-function count(l){return prov.filter(p=>p.owner===l).length;}
-
-// ---- battle ----
-function strength(p,attacking){
-  let s=p.soldiers+p.knights*3;
-  if(p.owner>=0)s+=LORDS[p.owner].lead;
-  if(!attacking){if(p.castle)s*=2;if(p.terrain==='hills')s+=2;if(p.terrain==='forest')s+=1;}
-  else if(p.engines>1)s=Math.round(s*(1+0.25*(p.engines-1)));
-  return s;
-}
-function odds(as,ds,stance){return Math.max(0.05,Math.min(0.95,as/(as+ds)+(stance-1)*0.1));}
-function battle(from,to,leaveN,stance){
-  if(stance===undefined)stance=1;
-  const A=prov[from],D=prov[to],att=A.owner;
-  const moveS=A.soldiers-leaveN,moveK=A.knights,moveE=A.engines;
-  if(moveS<=0&&moveK<=0){say('No one to march.');return false;}
-  if(D.owner===att){D.soldiers+=moveS;D.knights+=moveK;D.engines+=moveE;A.soldiers=leaveN;A.knights=0;A.engines=0;say(LORDS[att].name+' marches to '+D.name+'.');return true;}
-  if(D.castle&&moveE<=0){say('A castle at '+D.name+'. You need a siege engine.');return false;}
-  const stack={soldiers:moveS,knights:moveK,engines:moveE,owner:att};
-  const as=strength(stack,true),ds=strength(D,false);
-  if(D.soldiers+D.knights===0){A.soldiers=leaveN;A.knights=0;A.engines=0;take(D,att);D.soldiers=moveS;D.knights=moveK;D.engines=moveE;say(LORDS[att].name+' takes empty '+D.name+'.');return true;}
-  const pWin=odds(as,ds,stance),won=rnd()<pWin;
-  const who=D.owner<0?'the levies of '+D.name:LORDS[D.owner].name+' at '+D.name;
-  const pct=Math.round(pWin*100)+'%';
-  if(won){
-    const lossFrac=Math.max(0.1,Math.min(0.6,ds/as*0.5));
-    const lostS=Math.max(1,Math.round(moveS*lossFrac)),lostK=Math.round(moveK*lossFrac);
-    A.soldiers=leaveN;A.knights=0;A.engines=0;take(D,att);
-    D.soldiers=moveS-lostS;D.knights=moveK-lostK;D.engines=moveE;
-    say(LORDS[att].name+' beats '+who+' ('+as+' v '+ds+', '+pct+'), loses '+(lostS+lostK)+'.');
-  }else{
-    const f=D.castle?0.25:stance===0?0.25:stance===2?0.8:0.5;
-    const lostS=Math.round(moveS*f),lostK=Math.round(moveK*f);
-    A.soldiers-=lostS;A.knights-=lostK;
-    D.soldiers=Math.max(0,D.soldiers-Math.round(D.soldiers*(D.castle?0.1:0.25)));
-    say(LORDS[att].name+' repulsed by '+who+' ('+as+' v '+ds+', '+pct+'), loses '+(lostS+lostK)+'.');
-  }
-  return true;
-}
-function take(p,l){const old=p.owner;p.owner=l;p.soldiers=0;p.knights=0;p.engines=0;p.unrest=0;p.tax=1;if(old>=0&&count(old)===0){G.alive[old]=0;say(LORDS[old].name+' is finished.');}}
-
-// ---- deeds (one a season): tournament as a sealed wager, raid as a points check ----
-function tournament(l,r,stake,purse){
-  if(G.gold[l]<stake+purse){say('Not enough gold for that wager.');return false;}
-  const L=LORDS[l],R=LORDS[r];
-  const rp=R.ai==='hoarder'?Math.min(G.gold[r]-stake,3):R.ai==='raider'?Math.min(G.gold[r]-stake,12):Math.min(G.gold[r]-stake,6+Math.floor(rnd()*6));
-  const rPurse=Math.max(0,rp);
-  const kn=x=>prov.filter(p=>p.owner===x&&p.home).reduce((a,p)=>a+p.knights,0);
-  const my=L.renown+purse+kn(l),theirs=R.renown+rPurse+kn(r);
-  const p=odds(my,theirs,1),won=rnd()<p;
-  G.gold[l]-=purse;G.gold[r]=Math.max(0,G.gold[r]-rPurse);
-  if(won){G.gold[l]+=stake;G.gold[r]=Math.max(0,G.gold[r]-stake);L.renown=Math.min(10,L.renown+1);}
-  else{G.gold[l]-=stake;G.gold[r]+=stake;L.renown=Math.max(0,L.renown-1);}
-  say('Tourney v '+R.name+': '+my+' v '+theirs+' ('+Math.round(p*100)+'%). '+(won?'Won':'Lost')+' '+stake+'g. Purse '+purse+'/'+rPurse+'.');
-  return true;
-}
-function raid(from,to){
-  const A=prov[from],D=prov[to],l=A.owner;
-  if(A.knights<1){say('A raid needs a knight.');return false;}
-  const L=LORDS[l];const k=1;
-  const rp=L.cun+k+(D.castle?0:2),gp=Math.floor((D.soldiers+D.knights*3)/2)+(D.castle?2:0)+Math.max(0,2-D.unrest);
-  const p=odds(rp,gp,1),won=rnd()<p;
-  if(won){if(D.owner>=0){const g=Math.floor(G.gold[D.owner]*0.25);G.gold[D.owner]-=g;G.gold[l]+=g;say('Raid on '+D.name+': '+rp+' v '+gp+' ('+Math.round(p*100)+'%). Stole '+g+'g.');}
-    else{D.soldiers=Math.max(0,D.soldiers-2);say('Raid on '+D.name+': '+rp+' v '+gp+' ('+Math.round(p*100)+'%). Levy scattered, -2.');}}
-  else{A.knights-=k;L.renown=Math.max(0,L.renown-1);say('Raid on '+D.name+' fails ('+rp+' v '+gp+', '+Math.round(p*100)+'%). Knight lost.');}
-  return true;
-}
-// ---- season end ----
-function endSeason(){
-  for(let l=1;l<4;l++)if(G.alive[l])aiTurn(l);
-  for(let l=0;l<4;l++)if(G.alive[l]){G.gold[l]=Math.max(0,G.gold[l]+income(l));}
-  prov.forEach(p=>{
-    if(p.owner>=0){
-      if(p.tax>1)p.unrest++;else if(p.tax<1)p.unrest=Math.max(0,p.unrest-1);
-      if(!p.castle&&p.soldiers+p.knights===0)p.unrest++;
-      if(p.tax<=1&&p.unrest<3&&p.soldiers<3&&season()!=='Winter')p.soldiers++; // local militia
-      if(p.unrest>=5){say(p.name+' revolts against '+LORDS[p.owner].name+'!');const o=p.owner;p.owner=-1;p.soldiers=4;p.knights=0;p.engines=0;p.unrest=0;p.tax=1;if(count(o)===0)G.alive[o]=0;}
-    }else if(p.feature==='crown'){if(p.soldiers<16)p.soldiers++;}else if(season()==='Winter'&&p.soldiers<8)p.soldiers++;
-  });
-  G.turn++;G.moved=false;G.knightBought=false;G.deed=false;
-  if(G.turn%4===0)prov.forEach(p=>{if(p.feature==='shrine'&&p.owner>=0)LORDS[p.owner].renown=Math.min(10,LORDS[p.owner].renown+1);});
-  const crown=prov[CROWN];
-  for(let l=0;l<4;l++){
-    const inc=income(l),best=[0,1,2,3].every(o=>o===l||!G.alive[o]||income(o)<inc);
-    G.crownHeld[l]=(crown.owner===l&&crown.castle&&best)?G.crownHeld[l]+1:0;
-    G.richHeld[l]=(G.alive[l]&&inc>=totalIncome()*0.6&&inc>=12)?G.richHeld[l]+1:0;
-    if(G.crownHeld[l]>=4)G.over={l,how:'holds London and the crown'};
-    else if(G.richHeld[l]>=4)G.over={l,how:'commands the wealth of England'};
-  }
-  const living=[0,1,2,3].filter(l=>G.alive[l]);
-  if(living.length===1)G.over={l:living[0],how:'is the last lord standing'};
-  if(!G.alive[0]&&!G.over)G.over={l:-1,how:''};
-  if(G.turn>=48&&!G.over){let b=0;for(let l=1;l<4;l++)if(income(l)>income(b))b=l;G.over={l:b,how:'has the greatest income after twelve years'};}
-  if(G.over)G.phase='over';
-  say('— '+season()+', year '+year()+'. Income '+income(0)+', treasury '+G.gold[0]+' —');
-}
-
-// ---- AI ----
-function aiTurn(l){
-  const mine=prov.filter(p=>p.owner===l);if(!mine.length)return;
-  const pers=LORDS[l].ai;const home=mine.find(p=>p.home)||mine[0];
-  mine.forEach(p=>{p.tax=(pers==='hoarder'&&p.unrest<3&&(p.castle||p.soldiers>=3))?1.5:(p.unrest>=3?0.5:1);});
-  if(!home.castle&&G.gold[l]>=COST.castle){home.castle=true;G.gold[l]-=COST.castle;}
-  if(pers==='builder'){const t=mine.find(p=>!p.mill);if(t&&G.gold[l]>=COST.mill+5){t.mill=true;G.gold[l]-=COST.mill;}}
-  if(mine.length>=3&&G.gold[l]>=COST.castle+8){const t=mine.filter(p=>!p.castle).sort((a,b)=>b.base-a.base)[0];if(t){t.castle=true;G.gold[l]-=COST.castle;}}
-  const base=mine.filter(p=>p.castle).sort((a,b)=>strength(b,true)-strength(a,true))[0]||home;
-  const reserve=pers==='hoarder'?12:pers==='builder'?8:3;
-  const kn=mine.reduce((a,p)=>a+p.knights,0);
-  if(kn<2&&income(l)>=5&&G.gold[l]-reserve>=COST.knight){base.knights++;G.gold[l]-=COST.knight;}
-  const n=Math.max(0,Math.min(12,G.gold[l]-reserve));base.soldiers+=n;G.gold[l]-=n;
-  if(season()==='Winter')return;
-  const from=mine.sort((a,b)=>strength(b,true)-strength(a,true))[0];
-  const leave=from.castle?2:3;const stack={soldiers:from.soldiers-leave,knights:from.knights};
-  if(stack.soldiers+stack.knights<=2)return;
-  const as=strength(stack,true);
-  const targets=neighbours(from.id).filter(t=>t.owner!==l).map(t=>({t,ds:strength(t,false)})).filter(o=>!(o.t.castle&&from.engines===0));
-  const margin=pers==='raider'?1.3:1.6;
-  let best=null;targets.forEach(o=>{const v=(o.t.base+(o.t.market?2:0)+(o.t.feature==='crown'?3:0)+(o.t.owner<0?1:0))/(o.ds+1);if(as>o.ds*margin&&(!best||v>best.v))best={...o,v};});
-  if(best){battle(from.id,best.t.id,leave,pers==='raider'?2:pers==='hoarder'?0:1);return;}
-  if(pers==='raider'&&from.knights>=2){const t=neighbours(from.id).find(q=>q.owner>=0&&q.owner!==l&&G.gold[q.owner]>=12);if(t){raid(from.id,t.id);return;}}
-  if(neighbours(from.id).some(t=>t.owner!==l&&t.castle)&&G.gold[l]>=COST.engine+5&&from.engines===0){from.engines++;G.gold[l]-=COST.engine;}
-}
-
-// ---- player actions ----
-function canAct(p){return p&&p.owner===0&&G.phase==='play';}
-function buy(kind){
-  const p=prov[G.sel];if(!canAct(p))return;
-  let cost=COST[kind];if(kind==='castle'&&p.feature==='quarry')cost=12;if(kind==='knight'&&season()==='Spring')cost=6;
-  if(G.gold[0]<cost){say('Not enough gold.');return;}
-  if(kind==='castle'&&p.castle){say('Already a castle.');return;}
-  if(kind==='mill'&&p.mill){say('Already a mill.');return;}
-  if(kind==='market'){if(p.market){say('Already a market.');return;}const have=prov.filter(q=>q.owner===0&&q.market).length;if(have>=Math.floor(count(0)/3)){say('One market charter per three provinces.');return;}}
-  if(kind==='knight'&&G.knightBought){say('One knight a season.');return;}
-  if(!p.castle&&(kind==='soldier'||kind==='knight'||kind==='engine')){say('Recruiting needs a castle here.');return;}
-  G.gold[0]-=cost;
-  if(kind==='soldier')p.soldiers++;if(kind==='knight'){p.knights++;G.knightBought=true;}if(kind==='engine')p.engines++;
-  if(kind==='castle')p.castle=true;if(kind==='mill')p.mill=true;if(kind==='market')p.market=true;
-}
-function doTourney(){if(G.deed){say('One deed a season.');return;}if(!G.alive[G.rival]){say('That lord is gone.');return;}if(tournament(0,G.rival,G.stake,G.purse))G.deed=true;}
-function doRaid(to){if(G.deed){say('One deed a season.');return;}if(raid(G.sel,to))G.deed=true;}
-function cycleTax(){const p=prov[G.sel];if(!canAct(p))return;p.tax=p.tax===0.5?1:p.tax===1?1.5:0.5;}
-function tryMove(to){
-  const from=G.sel;const p=prov[from];if(!canAct(p))return;
-  if(G.moved){say('One army marches a season.');return;}
-  if(season()==='Winter'){say('No marching in winter.');return;}
-  if(!adj(from,to)){say('Not adjacent.');return;}
-  if(p.soldiers+p.knights-G.leave<=0){say('Nothing would march. Lower the garrison.');return;}
-  if(battle(from,to,Math.min(G.leave,p.soldiers),G.stance))G.moved=true;
-  G.sel=to;
-}
+function answerOffer(accept){const o=U.offer;U.phase='play';U.offer=null;const r=Sim.march(G,o.from,o.to,o.leave,o.stance,accept);if(r.ok){G.moved=true;U.sel=o.to;}}
+function endSeason(){if(U.phase!=='play')return;Sim.endSeason(G);if(G.over)U.phase='over';}
 
 // ---- input ----
 let buttons=[];
 function inPoly(x,y,poly){let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if((a.y>y)!==(b.y>y)&&x<(b.x-a.x)*(y-a.y)/(b.y-a.y)+a.x)c=!c;}return c;}
 function hit(x,y){
   for(const b of buttons)if(x>=b.x&&x<b.x+b.w&&y>=b.y&&y<b.y+b.h){b.f();return;}
-  for(const p of prov)if(inPoly(x,y,p.poly)){
-    if(G.armMove&&G.sel!==null&&G.sel!==p.id&&prov[G.sel].owner===0&&adj(G.sel,p.id)&&G.phase==='play'){if(G.armMove==='raid')doRaid(p.id);else tryMove(p.id);G.armMove=false;return;}
-    G.sel=p.id;G.armMove=false;return;
+  if(U.phase!=='play')return;
+  for(const p of G.prov)if(inPoly(x,y,Sim.MAP.cells[p.id].poly)){
+    if(U.mode&&U.sel!==null&&p.id!==U.sel){
+      if(U.mode==='march')doMarch(p.id);
+      else if(deedsLeft()<=0)Sim.say(G,'No deeds left this season.');
+      else if(U.mode==='raid'){if(!Sim.adj(U.sel,p.id))Sim.say(G,'Not adjacent.');else useDeed(Sim.raid(G,U.sel,p.id));}
+      else if(U.mode==='marry')useDeed(Sim.marry(G,me(),p.id));
+      else if(U.mode==='turn')useDeed(Sim.turnVassal(G,me(),p.id));
+      else if(U.mode==='pardon')useDeed(Sim.pardon(G,me(),p.id));
+      U.mode=null;return;
+    }
+    U.sel=p.id;U.mode=null;return;
   }
 }
-cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*H;
-  if(G.phase==='intro'){G.phase='play';return;}if(G.phase==='over')return;hit(x,y);});
+cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect();hit((e.clientX-r.left)/r.width*W,(e.clientY-r.top)/r.height*H);});
 addEventListener('keydown',e=>{
-  if(G.phase==='intro'){G.phase='play';return;}
-  if(e.key==='Enter'&&G.phase==='play')endSeason();
-  if(e.key==='t')cycleTax();if(e.key==='s')buy('soldier');if(e.key==='k')buy('knight');if(e.key==='c')buy('castle');
-  if(e.key==='[')G.leave=Math.max(0,G.leave-1);if(e.key===']')G.leave++;
-  if(e.key==='m')G.armMove=!G.armMove;
+  if(U.phase!=='play')return;
+  if(e.key==='Enter')endSeason();
+  const p=U.sel!==null?G.prov[U.sel]:null;
+  if(e.key==='t'&&canAct(p)&&!p.vassal)p.tax=p.tax===0.5?1:p.tax===1?1.5:0.5;
+  if(e.key==='s'&&canAct(p))Sim.buy(G,me(),p.id,'soldier');if(e.key==='k'&&canAct(p))Sim.buy(G,me(),p.id,'knight');if(e.key==='c'&&canAct(p))Sim.buy(G,me(),p.id,'castle');
+  if(e.key==='[')U.leave=Math.max(0,U.leave-1);if(e.key===']')U.leave++;
+  if(e.key==='m')U.mode=U.mode==='march'?null:'march';
 });
 
 // ---- drawing ----
@@ -269,113 +88,152 @@ function text(s,x,y,c,align,font){g.font=font||FONT;g.textBaseline='top';g.textA
 function path(pts){g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y));g.closePath();}
 function poly(pts,c){g.fillStyle=c;path(pts);g.fill();}
 function outline(pts,c,w){g.strokeStyle=c;g.lineWidth=w;path(pts);g.stroke();}
-function button(x,y,w,h,label,f,on){buttons.push({x,y,w,h,f});rect(x,y,w,h,on?P.paper:P.grey);rect(x,y+h-2,w,2,on?P.parch:P.ink);text(label,x+6,y+4,on?P.ink:P.paper);}
-function ownerCol(p,alt){return p.owner<0?(alt?P.neutral2:P.neutral):(alt?LORDS[p.owner].c2:LORDS[p.owner].c);}
+function button(x,y,w,h,label,f,on){buttons.push({x,y,w,h,f});rect(x,y,w,h,on?P.paper:P.grey);rect(x,y+h-2,w,2,on?P.parch:P.ink);text(label,x+6,y+4,on?P.ink:P.paper,'left',h<20?SMALL:FONT);}
+function ownerCol(p,alt){return p.owner<0?(alt?P.neutral2:P.neutral):EARLCOL[p.owner][alt?1:0];}
 function castleIcon(x,y,c){rect(x,y+4,16,10,c);rect(x,y,3,4,c);rect(x+6,y,4,4,c);rect(x+13,y,3,4,c);rect(x+6,y+9,4,5,P.ink);}
+function box(x,y,w,h){rect(x,y,w,h,P.ink);rect(x+4,y+4,w-8,h-8,P.paper);}
 
-function draw(){
-  buttons=[];
-  rect(0,0,W,H,P.ink);
+function drawMap(){
   rect(0,24,520,576,P.sea1);
   for(let y=24;y<600;y+=3)for(let x=((y/3)&1)*2;x<520;x+=4)rect(x,y,1,1,P.sea2);
-  prov.forEach(p=>{
-    poly(p.poly,ownerCol(p));
-    g.save();path(p.poly);g.clip();
+  G.prov.forEach(p=>{
+    const cell=Sim.MAP.cells[p.id];
+    poly(cell.poly,ownerCol(p));
+    g.save();path(cell.poly);g.clip();
     const tc=p.terrain==='hills'?P.hill:p.terrain==='forest'?P.forest:p.terrain==='marsh'?P.marsh:null;
-    if(tc){const xs=p.poly.map(q=>q.x),ys=p.poly.map(q=>q.y),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+    if(tc){const xs=cell.poly.map(q=>q.x),ys=cell.poly.map(q=>q.y),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
       for(let yy=y0;yy<y1;yy+=5)for(let xx=x0+(((yy/5)|0)&1)*2;xx<x1;xx+=5){if(p.terrain==='hills'){rect(xx,yy,1,1,tc);rect(xx+1,yy-1,1,1,tc);rect(xx+2,yy,1,1,tc);}else if(p.terrain==='forest'){rect(xx,yy,2,2,tc);rect(xx+1,yy-1,1,1,tc);}else rect(xx,yy,3,1,tc);}}
+    if(p.vassal){for(let yy=y0v(cell);yy<y1v(cell);yy+=8)for(let xx=x0v(cell);xx<x1v(cell);xx+=8)rect(xx,yy,3,1,ownerCol(p,true));}
     g.restore();
-    outline(p.poly,P.border,1.5);
+    outline(cell.poly,P.border,1.5);
   });
-  outline(coastPoly,P.sea3,1);
+  outline(Sim.MAP.coastPoly,P.sea3,1);
   g.strokeStyle=P.road;g.lineWidth=1;g.setLineDash([3,3]);
-  prov.forEach(p=>[...ADJ[p.id]].forEach(j=>{if(j>p.id){const q=prov[j];g.beginPath();g.moveTo(p.cx,p.cy+8);g.lineTo(q.cx,q.cy+8);g.stroke();}}));
+  G.prov.forEach(p=>[...Sim.MAP.adj[p.id]].forEach(j=>{if(j>p.id){const a=Sim.MAP.cells[p.id],b=Sim.MAP.cells[j];g.beginPath();g.moveTo(a.cx,a.cy+8);g.lineTo(b.cx,b.cy+8);g.stroke();}}));
   g.setLineDash([]);
-  prov.forEach(p=>{
-    if(G.sel===p.id)outline(p.poly,P.white,3);
-    if(G.armMove&&G.sel!==null&&adj(G.sel,p.id))outline(p.poly,P.gold,2);
-    text(p.name,p.cx,p.cy-22,P.paper,'center');
-    const inc=p.owner>=0?provIncome(p):p.base;
-    text(inc+'g'+(p.owner>=0&&p.tax!==1?(p.tax>1?' !':' -'):''),p.cx,p.cy-6,P.gold,'center');
-    let ix=p.cx-((p.castle?18:0)+(p.feature==='crown'?18:0)+(p.market?12:0)+(p.mill?8:0))/2;
-    if(p.castle){castleIcon(ix,p.cy+8,P.lgrey);ix+=18;}
-    if(p.feature==='crown'){rect(ix,p.cy+13,16,7,P.gold);rect(ix,p.cy+9,2,4,P.gold);rect(ix+7,p.cy+8,2,5,P.gold);rect(ix+14,p.cy+9,2,4,P.gold);ix+=18;}
-    if(p.market){rect(ix,p.cy+10,9,9,P.paper);rect(ix+2,p.cy+12,5,5,P.red);ix+=12;}
-    if(p.mill){rect(ix+2,p.cy+8,3,12,P.road);rect(ix,p.cy+8,7,2,P.road);}
-    const army=p.soldiers+(p.knights?' +'+p.knights+'k':'')+(p.engines?' +'+p.engines+'e':'');
-    text(army,p.cx,p.cy+24,p.owner===0?P.white:P.paper,'center',SMALL);
-    if(p.unrest>=3)text('unrest '+p.unrest,p.cx,p.cy+38,P.red,'center',SMALL);
+  G.prov.forEach(p=>{
+    const cell=Sim.MAP.cells[p.id],cx=cell.cx,cy=cell.cy;
+    if(U.sel===p.id)outline(cell.poly,P.white,3);
+    if(U.mode&&U.sel!==null&&targetable(p))outline(cell.poly,P.gold,2);
+    text(p.name,cx,cy-22,P.paper,'center');
+    const inc=p.owner>=0?Sim.provIncome(G,p):p.base;
+    text(inc+'g'+(p.owner>=0&&!p.vassal&&p.tax!==1?(p.tax>1?' !':' -'):''),cx,cy-6,P.gold,'center');
+    let ix=cx-((p.castle?18:0)+(p.feature==='crown'?18:0)+(p.market?12:0)+(p.mill?8:0))/2;
+    if(p.castle){castleIcon(ix,cy+8,P.lgrey);ix+=18;}
+    if(p.feature==='crown'){rect(ix,cy+13,16,7,P.gold);rect(ix,cy+9,2,4,P.gold);rect(ix+7,cy+8,2,5,P.gold);rect(ix+14,cy+9,2,4,P.gold);ix+=18;}
+    if(p.market){rect(ix,cy+10,9,9,P.paper);rect(ix+2,cy+12,5,5,P.red);ix+=12;}
+    if(p.mill){rect(ix+2,cy+8,3,12,P.road);rect(ix,cy+8,7,2,P.road);}
+    const army=(p.soldiers+p.knights?p.soldiers+(p.knights?'+'+p.knights+'k':'')+(p.engines?'+'+p.engines+'e':''):'')+(p.levy?(p.soldiers+p.knights?' ':'')+'('+p.levy+')':'');
+    text(army,cx,cy+24,p.owner===me()?P.white:P.paper,'center',SMALL);
+    if(p.vassal)text('loyal '+p.lord.loyalty,cx,cy+38,p.lord.loyalty<=3?P.red:P.lgrey,'center',SMALL);
+    else if(p.unrest>=3)text('unrest '+p.unrest,cx,cy+38,P.red,'center',SMALL);
   });
-  rect(0,0,W,24,P.ink);
-  text(season()+', year '+year(),8,5,P.paper);
-  text('Treasury '+G.gold[0]+'g    Income '+income(0)+'g a season    Land '+count(0)+'/'+prov.length,200,5,P.gold);
-  rect(520,24,280,576,P.grey);rect(524,28,272,568,P.ink);
-  const p=G.sel!==null?prov[G.sel]:null;
-  const px=534;
-  if(!p){
-    text('Click a province.',px,40,P.paper);
-    ['','To win, one of:','  hold London with a castle','  for four seasons with the','  highest income;','  take 60% of all income','  for a year;','  be the last lord.','','Every fight: points v points,','odds shown, your stance decides','risk. One march and one deed','(raid or tourney) a season.','','Keys: Enter ends the season','t tax   s k c buy','m march   [ ] garrison'].forEach((s,i)=>text(s,px,60+i*18,P.lgrey,'left',SMALL));
-  }else{
-    text(p.name,px,38,P.gold);
-    text(p.terrain+(p.feature?', '+p.feature:''),px,58,P.lgrey,'left',SMALL);
-    text(p.owner<0?'Neutral levies':LORDS[p.owner].name+', '+LORDS[p.owner].title+(p.home?' (home)':''),px,74,ownerCol(p,true),'left',SMALL);
-    text('Base '+p.base+'g, '+(p.tax===1?'fair tax':p.tax>1?'harsh tax':'low tax'),px,98,P.paper);
-    text('Pays '+(p.owner>=0?provIncome(p):'-')+'g this season, unrest '+p.unrest,px,118,P.paper);
-    text('Men '+p.soldiers+'  Knights '+p.knights+'  Engines '+p.engines,px,138,P.paper);
-    text('Defends at '+strength(p,false)+(p.owner===0?'   Renown '+LORDS[0].renown:''),px,158,P.lgrey);
-    if(canAct(p)){
-      const bw=250,bh=20,by=180;
-      button(px,by,bw,bh,'Tax: '+(p.tax===1?'fair':p.tax>1?'harsh':'low')+'  (t)',cycleTax,true);
-      const kc=season()==='Spring'?6:8;
-      button(px,by+22,bw,bh,'Soldier  1g  (s)',()=>buy('soldier'),G.gold[0]>=1&&p.castle);
-      button(px,by+44,bw,bh,'Knight  '+kc+'g  (k)',()=>buy('knight'),G.gold[0]>=kc&&p.castle&&!G.knightBought);
-      button(px,by+66,bw,bh,'Siege engine  15g',()=>buy('engine'),G.gold[0]>=15&&p.castle);
-      const cc=p.feature==='quarry'?12:20;
-      button(px,by+88,bw,bh,p.castle?'Castle built':'Castle  '+cc+'g  (c)',()=>buy('castle'),!p.castle&&G.gold[0]>=cc);
-      button(px,by+110,bw,bh,p.mill?'Mill built':'Mill  5g',()=>buy('mill'),!p.mill&&G.gold[0]>=5);
-      button(px,by+132,bw,bh,p.market?'Market held':'Market charter  12g',()=>buy('market'),!p.market&&G.gold[0]>=12);
-      button(px,by+160,120,bh,G.armMove===true?'Pick target':'March (m)',()=>{G.armMove=G.armMove===true?false:true;},!G.moved&&season()!=='Winter');
-      button(px+126,by+160,80,bh,STANCE[G.stance],()=>{G.stance=(G.stance+1)%3;});
-      button(px+212,by+160,18,bh,'-',()=>{G.leave=Math.max(0,G.leave-1);});button(px+232,by+160,18,bh,'+',()=>{G.leave++;});
-      text('leave '+G.leave+(G.moved?', marched':'')+'. Odds shown in the log.',px,by+182,P.lgrey,'left',SMALL);
-      // deeds
-      button(px,by+200,120,bh,G.armMove==='raid'?'Pick target':'Raid (knight)',()=>{G.armMove=G.armMove==='raid'?false:'raid';},!G.deed&&p.knights>0);
-      button(px+126,by+200,124,bh,'Tourney',doTourney,!G.deed&&G.gold[0]>=G.stake+G.purse);
-      button(px,by+224,60,bh,'v '+LORDS[G.rival].name.slice(0,5),()=>{do{G.rival=G.rival%3+1;}while(!G.alive[G.rival]&&[1,2,3].some(x=>G.alive[x]));});
-      button(px+64,by+224,90,bh,'stake '+G.stake,()=>{G.stake=G.stake>=20?5:G.stake+5;});
-      button(px+158,by+224,92,bh,'purse '+G.purse,()=>{G.purse=G.purse>=15?0:G.purse+5;});
-    }else if(p.owner!==0){
-      text(neighbours(p.id).some(q=>q.owner===0)?'On your border.':'Not on your border.',px,186,P.lgrey);
-      text('Select your province, March,',px,210,P.grey,'left',SMALL);text('then click here.',px,226,P.grey,'left',SMALL);
-    }
-  }
-  for(let l=1;l<4;l++){const L=LORDS[l];rect(px,448+(l-1)*16,10,10,L.c);text(L.name+': '+(G.alive[l]?count(l)+' lands, '+income(l)+'g, renown '+L.renown:'gone'),px+16,446+(l-1)*16,P.lgrey,'left',SMALL);}
-  rect(px,498,250,1,P.grey);
-  const lines=G.log.slice(-4);lines.forEach((s,i)=>text(s.length>36?s.slice(0,35)+'…':s,px,504+i*16,i===lines.length-1?P.paper:P.grey,'left',SMALL));
-  button(px,570,250,24,'END SEASON  (Enter)',()=>{if(G.phase==='play')endSeason();},true);
-
-  if(G.phase==='intro'){
-    rect(100,120,600,340,P.ink);rect(104,124,592,332,P.paper);
-    const L=['IRONCROWN — the land and the gold','',
-      'You are Osric, Earl of Northumbria. Twelve years to','take London, walled and garrisoned, and the crown','of a divided England.',
-      '','Every province pays gold each season. Tax harsh for','more now and risk revolt. Leave garrisons or lose land','to anyone who walks in. Land held fairly raises its own','militia. Castles hold land, recruit men, and stop','armies that have no siege engine.',
-      '','Autumn doubles the harvest. Winter stops all marching.','One army marches a season.','','Click to begin'];
-    L.forEach((s,i)=>text(s,W/2,136+i*20,i===0||i===L.length-1?P.red:P.ink,'center'));
-  }
-  if(G.phase==='over'){
-    rect(150,200,500,180,P.ink);rect(154,204,492,172,P.paper);
-    const o=G.over;
-    text(o.l===0?'YOU WEAR THE CROWN':o.l<0?'YOUR LINE IS ENDED':LORDS[o.l].name.toUpperCase()+' TAKES THE CROWN',W/2,220,P.red,'center');
-    text(o.l>=0?LORDS[o.l].name+' '+o.how+'.':'You hold no land.',W/2,256,P.ink,'center');
-    text('Year '+year()+'. Your income '+income(0)+'g, land '+count(0)+'.',W/2,290,P.ink,'center');
-    text('Seed #'+seed0.toString(16)+'. Reload to play again.',W/2,330,P.ink,'center');
-  }
-  let k=Math.min(innerWidth/W,innerHeight/H);if(k>=2)k=Math.floor(k);
-  const cw=Math.round(W*k),ch=Math.round(H*k);
-  if(cv.width!==cw){cv.width=cw;cv.height=ch;}
-  ctx.imageSmoothingEnabled=false;ctx.drawImage(off,0,0,cw,ch);
 }
-say('Spring, year 1. Take the neutral lands first.');
+function x0v(c){return Math.min(...c.poly.map(q=>q.x));}function x1v(c){return Math.max(...c.poly.map(q=>q.x));}
+function y0v(c){return Math.min(...c.poly.map(q=>q.y));}function y1v(c){return Math.max(...c.poly.map(q=>q.y));}
+function targetable(p){
+  const s=G.prov[U.sel];
+  if(U.mode==='march'||U.mode==='raid')return Sim.adj(U.sel,p.id)&&(U.mode==='march'||p.owner!==me());
+  if(U.mode==='marry')return p.owner<0&&p.lord&&!p.lord.dispossessed&&p.lord.temper!=='city'&&Sim.neighbours(G,p.id).some(q=>q.owner===me());
+  if(U.mode==='turn')return p.vassal&&p.owner>=0&&p.owner!==me();
+  if(U.mode==='pardon')return p.owner===me()&&p.lord&&p.lord.dispossessed;
+  return false;
+}
+
+function drawPanel(){
+  const px=534;rect(520,24,280,576,P.grey);rect(524,28,272,568,P.ink);
+  const p=U.sel!==null?G.prov[U.sel]:null;
+  if(!p){text('Click a province.',px,40,P.paper);return;}
+  text(p.name,px,36,P.gold);
+  text(p.terrain+(p.feature?', '+p.feature:''),px,54,P.lgrey,'left',SMALL);
+  const who=p.owner<0?(p.lord?p.lord.name+' ('+p.lord.temper+')':'no lord'):G.lords[p.owner].name+(p.home?' (home)':p.vassal?', vassal':'');
+  text(who,px,68,ownerCol(p,true),'left',SMALL);
+  if(p.vassal)text(p.lord.name+' ('+p.lord.temper+'), loyalty '+p.lord.loyalty,px,82,P.lgrey,'left',SMALL);
+  else if(p.lord&&p.lord.dispossessed)text(p.lord.name+', dispossessed'+(p.lord.host>=0?', at '+G.lords[p.lord.host].name+'\'s court':''),px,82,P.red,'left',SMALL);
+  text('Base '+p.base+'g, '+(p.vassal?'vassal dues':p.tax===1?'fair tax':p.tax>1?'harsh tax':'low tax'),px,100,P.paper);
+  text('Pays '+(p.owner>=0?Sim.provIncome(G,p):'-')+'g'+(p.vassal?'':', unrest '+p.unrest),px,118,P.paper);
+  text('Men '+p.soldiers+'  Kn '+p.knights+'  Eng '+p.engines+'  Levy '+p.levy,px,136,P.paper);
+  text('Defends at '+Sim.strength(G,p,false),px,154,P.lgrey);
+  if(!canAct(p)){
+    if(p.owner!==me()){text(Sim.neighbours(G,p.id).some(q=>q.owner===me())?'On your border.':'Not on your border.',px,180,P.lgrey);
+      text('Select your province, pick',px,200,P.grey,'left',SMALL);text('March or a deed, then click here.',px,214,P.grey,'left',SMALL);}
+    return;
+  }
+  const bw=250,bh=20;let y=176;
+  if(!p.vassal){
+    button(px,y,bw,bh,'Tax: '+(p.tax===1?'fair':p.tax>1?'harsh':'low')+'  (t)',()=>{p.tax=p.tax===0.5?1:p.tax===1?1.5:0.5;},true);y+=22;
+    const kc=Sim.season(G)==='Spring'?6:8,cc=p.feature==='quarry'?12:20;
+    button(px,y,122,bh,'Soldier 1g (s)',()=>Sim.buy(G,me(),p.id,'soldier'),G.gold[me()]>=1&&p.castle);
+    button(px+128,y,122,bh,'Knight '+kc+'g (k)',()=>Sim.buy(G,me(),p.id,'knight'),G.gold[me()]>=kc&&p.castle&&!G.knightBought);y+=22;
+    button(px,y,122,bh,'Engine 15g',()=>Sim.buy(G,me(),p.id,'engine'),G.gold[me()]>=15&&p.castle);
+    button(px+128,y,122,bh,p.castle?'Castle built':'Castle '+cc+'g (c)',()=>Sim.buy(G,me(),p.id,'castle'),!p.castle&&G.gold[me()]>=cc);y+=22;
+    button(px,y,122,bh,p.mill?'Mill built':'Mill 5g',()=>Sim.buy(G,me(),p.id,'mill'),!p.mill&&G.gold[me()]>=5);
+    button(px+128,y,122,bh,p.market?'Market held':'Market 12g',()=>Sim.buy(G,me(),p.id,'market'),!p.market&&G.gold[me()]>=12);y+=22;
+  }else{text('A vassal rules here. You may station',px,y,P.lgrey,'left',SMALL);text('troops, not tax or build.',px,y+14,P.lgrey,'left',SMALL);y+=36;}
+  y+=6;
+  button(px,y,110,bh,U.mode==='march'?'Pick target':'March (m)',()=>{U.mode=U.mode==='march'?null:'march';},!G.moved&&Sim.season(G)!=='Winter'&&p.soldiers+p.knights>0);
+  button(px+116,y,76,bh,Sim.STANCE[U.stance],()=>{U.stance=(U.stance+1)%3;});
+  button(px+198,y,24,bh,'-',()=>{U.leave=Math.max(0,U.leave-1);});button(px+226,y,24,bh,'+',()=>{U.leave++;});y+=22;
+  text('leave '+U.leave+(G.moved?', marched':'')+'. Odds in the log.',px,y,P.lgrey,'left',SMALL);y+=20;
+  const dl=deedsLeft();text('Deeds left: '+dl,px,y,dl?P.gold:P.grey);y+=18;
+  const md=(m,label,ok)=>button(px,y,122,bh,U.mode===m?'Pick target':label,()=>{U.mode=U.mode===m?null:m;},ok&&dl>0);
+  md('raid','Raid (knight)',p.knights>0);
+  button(px+128,y,122,bh,'Tourney v '+G.lords[U.rival].name.slice(0,6),()=>{if(dl>0)useDeed(Sim.tournament(G,me(),U.rival,U.stake,U.purse));},dl>0&&G.gold[me()]>=U.stake+U.purse);y+=22;
+  button(px,y,76,bh,'v '+G.lords[U.rival].name.slice(0,5),()=>{do{U.rival=(U.rival+1)%4;}while(U.rival===me()||!G.alive[U.rival]);});
+  button(px+82,y,80,bh,'stake '+U.stake,()=>{U.stake=U.stake>=20?5:U.stake+5;});button(px+168,y,82,bh,'purse '+U.purse,()=>{U.purse=U.purse>=15?0:U.purse+5;});y+=22;
+  md('marry','Marry (15g)',G.lords[me()].renown>=5&&G.gold[me()]>=15);
+  button(px+128,y,122,bh,U.mode==='turn'?'Pick target':'Turn a vassal',()=>{U.mode=U.mode==='turn'?null:'turn';},dl>0);y+=22;
+  md('pardon','Pardon a lord',G.prov.some(q=>q.owner===me()&&q.lord&&q.lord.dispossessed));
+  button(px+128,y,122,bh,'Ally v '+G.lords[U.rival].name.slice(0,6),()=>{if(dl>0)useDeed(Sim.ally(G,me(),U.rival));},dl>0);y+=22;
+  button(px,y,bw,bh,'Draw a court card',()=>{if(dl>0)useDeed(Sim.drawCard(G,me()));},dl>0);y+=22;
+}
+
+function draw(){
+  buttons=[];rect(0,0,W,H,P.ink);
+  if(U.phase==='choose'){
+    box(60,60,680,480);
+    text('IRONCROWN — the land and the gold',W/2,80,P.red,'center');
+    text('Choose your earl. Twelve years to take London and the crown of England.',W/2,110,P.ink,'center');
+    Sim.EARLS.forEach((e,i)=>{const x=90+i*165,y=150;rect(x,y,150,250,P.ink);rect(x+3,y+3,144,244,EARLCOL[i][0]);
+      text(e.name,x+75,y+12,P.white,'center');text(e.title,x+75,y+32,P.paper,'center',SMALL);
+      ['Lead '+e.lead,'Steward '+e.stew,'Cunning '+e.cun,'Renown '+e.renown].forEach((s,k)=>text(s,x+75,y+70+k*20,P.paper,'center',SMALL));
+      text(i===0||i===1?'far corner, 2 lands':'near corner, 1 land',x+75,y+160,P.paper,'center',SMALL);
+      button(x+25,y+205,100,24,'Play',()=>start(i),true);});
+    ['Every province has a lord. March on a weak one and they may kneel and become your vassal:','their land pays you and defends itself, and their loyalty (0 to 10) is on the map.',
+     'Refuse or beat them and the lord is dispossessed, flees to a rival, and may come back.','Every fight: points v points, odds shown, your stance sets the risk. One march a season,',
+     'one deed (two from six lands). Winter freezes armies left outside walls.'].forEach((s,i)=>text(s,W/2,420+i*18,P.ink,'center',SMALL));
+    finish();return;
+  }
+  drawMap();
+  rect(0,0,W,24,P.ink);
+  text(Sim.season(G)+', year '+Sim.year(G),8,5,P.paper);
+  text('Treasury '+G.gold[me()]+'g   Income '+Sim.income(G,me())+'g   Land '+Sim.count(G,me())+'/18   Renown '+G.lords[me()].renown,200,5,P.gold);
+  drawPanel();
+  const px=534;
+  for(let l=0,k=0;l<4;l++){if(l===me())continue;const L=G.lords[l];rect(px,452+k*16,10,10,EARLCOL[l][0]);text(L.name+': '+(G.alive[l]?Sim.count(G,l)+' lands, '+Sim.income(G,l)+'g, renown '+L.renown+(G.allies[Sim.key(me(),l)]>G.turn?', ally':''):'gone'),px+16,450+k*16,P.lgrey,'left',SMALL);k++;}
+  rect(px,502,250,1,P.grey);
+  const lines=G.log.slice(-4);lines.forEach((s,i)=>text(s.length>36?s.slice(0,35)+'…':s,px,506+i*15,i===lines.length-1?P.paper:P.grey,'left',SMALL));
+  button(px,570,250,24,'END SEASON  (Enter)',endSeason,U.phase==='play');
+  if(U.phase==='offer'){
+    const o=U.offer,D=G.prov[o.to];box(150,180,500,200);
+    text(D.lord.name+' of '+D.name+' offers to kneel.',W/2,200,P.red,'center');
+    text('Your '+o.as+' points against their '+o.ds+'.',W/2,232,P.ink,'center');
+    text('Accept: they keep their seat as your vassal at loyalty 5.',W/2,254,P.ink,'center',SMALL);
+    text('Their land pays you and their levy defends it.',W/2,270,P.ink,'center',SMALL);
+    text('Refuse: battle, and conquest if you win.',W/2,286,P.ink,'center',SMALL);
+    button(220,320,150,28,'Accept homage',()=>answerOffer(true),true);button(430,320,150,28,'Refuse, attack',()=>answerOffer(false),false);
+  }
+  if(U.phase==='over'){
+    box(150,200,500,180);const o=G.over;
+    const how={crown:'holds London and the crown',treasury:'commands the wealth of England',last:'is the last lord standing',time:'has the greatest income after twelve years'}[o.how]||'';
+    text(o.l===me()?'YOU WEAR THE CROWN':o.l<0?'YOUR LINE IS ENDED':G.lords[o.l].name.toUpperCase()+' TAKES THE CROWN',W/2,220,P.red,'center');
+    text(o.l>=0?G.lords[o.l].name+' '+how+'.':'You hold no land.',W/2,256,P.ink,'center');
+    text('Year '+Sim.year(G)+'. Your income '+Sim.income(G,me())+'g, land '+Sim.count(G,me())+'.',W/2,290,P.ink,'center');
+    text('Seed #'+G.seed0.toString(16)+'. Reload to play again.',W/2,330,P.ink,'center');
+  }
+  finish();
+}
+function finish(){let k=Math.min(innerWidth/W,innerHeight/H);if(k>=2)k=Math.floor(k);const cw=Math.round(W*k),ch=Math.round(H*k);if(cv.width!==cw){cv.width=cw;cv.height=ch;}ctx.imageSmoothingEnabled=false;ctx.drawImage(off,0,0,cw,ch);}
 function frame(){draw();requestAnimationFrame(frame);}requestAnimationFrame(frame);
 </script>
 </body>

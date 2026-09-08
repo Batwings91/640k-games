@@ -160,11 +160,24 @@ rich land you mean to keep. That is the intended choice.
 48 seasons is 35 to 45 minutes including contests. If playtests run long, the first lever is a
 10-year campaign, not fewer provinces.
 
-**Known imbalance, from scripted runs of the prototype (September 2026).** With the contest
-system and AI castle-building in, the near-corner lords (Norfolk, Chester) won every seed, by the
-crown or by treasury, between years four and eight; the far corners (Northumbria, Cornwall) held
-three to six provinces and never threatened. The second starting province for the far corners was
-not enough. Levers, in the order to try them in the balance runner: London's levy growth (now +1
-a season to 16), the treasury win threshold (60% may be too low with four lords), the near-corner
-base incomes (Norfolk 3 and Chester 2 could drop by 1), and giving the far corners a mill. The
-campaign should end in years nine to twelve most of the time; it currently ends in four to eight.
+**Balance state, from the runner (`node balance.js 300`, September 2026).** Four AI earls, no
+player. Before tuning, Norfolk won 98% of games with any personality: the cause was geography
+(four rich lowland neighbours and two steps to London), not the AI. Levers pulled, in order:
+vassal levies grow to 6 and defend at 1.5x (vassal land was a free grab); neutral levies start
+at 3 to 6; attacker losses floor at 20%; the treasury win needs 20 income as well as 60%; base
+incomes moved toward the far corners (Northumbria 3, Cumbria 2, Chester 3, Cornwall 2, Devon 3)
+and away from the east (Norfolk 2, Lincoln 2, Essex 1); temperaments placed so each earl has one
+easy neighbour and one hard; every AI builds mills and gathers larger stacks. After that:
+
+| Earl | Win rate | Note |
+|---|---|---|
+| Osric (Northumbria) | 9% | Two neighbours only; still the weak corner |
+| Aldric (Cornwall) | 36% | |
+| Berta (Norfolk) | 36% | |
+| Gwyn (Chester) | 19% | |
+
+Average end at year 12; 70% of games reach the twelve-year limit without a crown, because the AI
+rarely gathers the 30-plus points and engine that London needs. Two things to do next in the
+runner: give Northumbria a third road (to Lancaster) or a richer York, and teach the AI to mass
+for London from year eight. A human player is not the AI; these figures set the AI's shape, not
+the player's experience, which needs your hands on it.

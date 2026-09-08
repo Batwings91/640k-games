@@ -18,16 +18,17 @@ references and the keep/cut list, which will reshape most of what is here.
 | [07-paper-prototype.md](07-paper-prototype.md) | Milestone 1: one-page table rules for the campaign turn |
 | [08-parameters.md](08-parameters.md) | Every number in one place, and the arithmetic showing they make the intended game |
 | [09-lords.md](09-lords.md) | First-draft cast: the four earls and fourteen minor lords with temperaments |
-| [prototype/campaign.html](prototype/campaign.html) | Milestone 2: playable map campaign, land, income, tax, garrisons, three AI lords, three victory conditions. England at 800x600. Open in a browser; `?seed=1234` fixes the levies |
+| [prototype/campaign.html](prototype/campaign.html) | Playable campaign: choose an earl, England at 800x600, the loyalty layer (submission, vassals, dispossessed lords, court deeds), contests by points and odds, winter attrition, three victories. Needs `sim.js` beside it; `?seed=1234` fixes the levies |
+| [prototype/sim.js](prototype/sim.js) | The rules, as one file shared by the page and the balance runner |
+| [prototype/balance.js](prototype/balance.js) | Headless balance runner: `node balance.js 300` prints win rates, endings and end years |
 | [prototype/siege.html](prototype/siege.html) | Shelved catapult set-piece, kept for reference only (320x200) |
 
 ## Where the design stands
 
 The land-and-income strategy is the core, the map is England, and the look is 800x600 with a
 256-colour VGA palette, all decided September 2026. There are no action mini-games:
-every contest is resolved by one visible points-and-odds system. Balance in the campaign prototype is untuned: a scripted player that garrisons
-and builds castles wins on most seeds, and the AI lords churn land between themselves. Tuning waits
-for the headless balance runner in `03-technical-plan.md`.
+every contest is resolved by one visible points-and-odds system. The balance runner exists and the first tuning pass is done; the state of
+balance is recorded at the end of `08-parameters.md`.
 
 ## Legal note, up front
 
