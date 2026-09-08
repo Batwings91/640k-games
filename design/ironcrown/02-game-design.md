@@ -10,7 +10,7 @@ Season turn
   1. Ledger        — income arrives, upkeep leaves, the income line updates on screen
   2. Rule          — set tax per province, build works, recruit, garrison
   3. March         — move armies along roads; battles resolve where armies meet
-  4. One deed      — court, tournament or raid (optional; pass banks 2 gold)
+  4. One deed      — tournament, raid or court (optional; pass banks 2 gold)
   5. Rivals move   — visibly, fast-forwardable
 Repeat until one lord holds the crown, one lord holds enough income, or the years run out.
 ```
@@ -81,56 +81,97 @@ Small numbers on purpose. A lord who has never held 40 soldiers is doing fine.
 - **One army per lord moves per season**, one road step (two on roads through your own land).
   Other stacks stay as garrisons. This keeps the turn to one decision.
 
-## Battles, auto-resolved and readable
+## Contests: one system for every fight
 
-Field battles are not a mini-game. Before the clash the screen shows both strengths with the
-modifiers listed (terrain, castle, knights, lord's leadership), the odds as a percentage, and a
-single choice: **attack**, **hold**, or **withdraw**. The hidden roll is at most ±15%. The result
-screen shows the losses and why. A siege against a castle needs an engine and offers the catapult
-set-piece or **auto-resolve at the shown odds**.
+Decided September 2026: there are no action mini-games. Every contest in the game, field battle,
+siege, tournament, raid, is resolved by the same **points and odds** system, so the player learns
+one thing and applies it everywhere. The catapult prototype is shelved; it can return later as an
+optional flourish, but nothing depends on it.
+
+The contest screen always shows:
+
+1. **Both sides' points**, itemised (men, knights, terrain, castle, lord's stat, works).
+2. **The odds** as a percentage, computed from the points with a roll no wider than ±15%.
+3. **A stance**, the player's one decision: *bold* (odds up 10 points, losses on defeat doubled),
+   *steady* (as shown), *cautious* (odds down 10, losses on either side halved, and a lost
+   field battle becomes a retreat rather than a rout). The AI picks by personality.
+4. **The result**, itemised the same way, so the player can see what decided it.
+
+Turn-based and readable, like a Risk battle with the dice on the table.
+
+### Field battle (army meets army in the open)
+
+```
+attack points  = soldiers + 3×knights + leadership
+defence points = soldiers + 3×knights + 2×archers + terrain + leadership
+odds(attacker) = attack / (attack + defence), then stance, then the roll
+```
+Winner takes the province. Loser's losses: 50% of the stack (rout) or 25% (cautious retreat).
+Winner's losses: half the loser's points as a fraction of the winner's, minimum one man.
+
+### Siege (army against a castle)
+
+Needs a siege engine in the stack. Defence points are doubled by the walls; each engine beyond
+the first adds 25% to attack points. A siege that fails costs the attacker 25% and the engine
+stays; the defender loses 10%. Sieges are the expensive, deliberate move of the game, which is
+how London is taken.
+
+### Tournament (a deed, no armies)
+
+The original's joust, without the joystick. A tournament is a **sealed wager**:
+- You name a rival and stakes: gold (5 to 20), or a border province against one of theirs.
+- Both sides secretly commit *purse* gold on top of the stakes. Points = renown + committed purse
+  + 1 per knight at home. The AI commits by personality and by how it rates your renown.
+- Higher points win; the roll is ±15%. Winner takes the stakes and gains renown; the loser
+  loses the stakes. Committed purse is spent by both sides, win or lose (it paid for the feast).
+The decision is how much to risk against a lord whose purse you cannot see.
+
+### Raid (a deed, needs a knight)
+
+The original's castle infiltration, as a **points check**:
+```
+raid points   = cunning + knights sent + 2 if the target has no castle
+guard points  = garrison ÷ 2 + 2 if castle + 1 per unrest below 2
+success odds  = raid / (raid + guard), roll ±15%
+```
+Success steals 25% of the target's treasury (or frees a captive, from the court deck). Failure
+loses the knights sent and costs renown. A raid on a neutral province steals nothing but lowers
+its levy by 2.
+
+### Court (a deed)
+
+Draw from the event deck, text choices with the odds shown: alliance (a rival holds off for 4
+seasons), marriage (a province and an ally), outlaws of the forest (a free levy of 6 for one
+battle, from a held forest province, 3 uses), captive (a raid target that yields a province),
+plague, good harvest, treachery. Cheap to build, feeds the map, stays.
 
 ## Victory
 
-- **Crown**: hold the crown province with a castle for four consecutive seasons while holding the
-  highest income on the map.
-- **Treasury**: hold 60% of the map's total income for a full year. This is the win for the
-  player who would rather build than storm.
+- **Crown**: hold London with a castle for four consecutive seasons while holding the highest
+  income on the map.
+- **Treasury**: hold 60% of the map's total income (and at least 12 a season) for a full year.
 - **Last lord standing.**
-- **Defeat**: lose your last castle.
-- **Score**: years taken, peak income, provinces, reputation, a title. The seed on the result screen.
+- **Defeat**: lose your last castle. **Time**: after 12 years, the highest income wins.
+- **Score**: years taken, peak income, provinces, renown, a title. The seed on the result screen.
 
 ## Lords
 
-Four lords, each with a starting corner and stats that change map decisions, not just odds:
-*Leadership* (field battle bonus), *Stewardship* (+1 gold per 4 provinces), *Renown* (reputation
-starts higher, tournaments favour you), *Cunning* (raids and sabotage). Rivals are the lords you did
-not pick, played by an AI with a matching personality: builder, raider, hoarder, opportunist.
+Four lords, each with a home corner and three visible stats from 1 to 3 that change map
+decisions: *Leadership* (points in battle), *Stewardship* (+1 gold per 4 provinces per point),
+*Cunning* (raids), plus starting *Renown*. The far corners (Northumbria, Cornwall) start with two
+provinces because they are further from London; the near corners (Norfolk, Chester) start with
+one. Rivals are the lords you did not pick, played by an AI with a matching personality:
+builder, raider, hoarder, opportunist. Full numbers in `08-parameters.md`.
 
-## Set-pieces, all optional
+## Renown
 
-Every set-piece has an **auto-resolve** button showing the odds first. A **strategy only** toggle
-in settings auto-resolves everything silently. Playing them well moves the odds by a margin; it
-never replaces the map.
-
-- **Siege** (the catapult, prototype built): the one set-piece worth keeping. Under a minute.
-  The weak stone tell, three shot types, defenders shoot back. Wired into castle assaults.
-- **Tournament**: a deed. Stakes are gold or a border province. Candidate for cutting; if it stays,
-  it is a three-pass joust with a visible drift reticle.
-- **Raid**: a deed needing a knight. Steal gold from a rival treasury. Candidate for cutting; if
-  it stays, a short read-and-block duel.
-- **Court**: a deed drawing from an event deck: alliances (a rival holds off for N seasons),
-  marriage (a province and an ally), outlaws (a free levy for one battle, from forest provinces),
-  treachery. Text choices with the odds shown. Cheap to build and feeds the map, so it stays.
-
-## Reputation
-
-One visible bar per lord, Tyrant to Beloved. Fair tax, held promises and won tournaments raise it;
-harsh tax, rot and attacking allies lower it. It sets how big a levy neutral provinces raise
+One visible number per lord, 0 to 10. Fair tax, held shrines, won tournaments and rescues raise
+it; harsh tax, failed raids and attacking allies lower it. It sets how big a levy neutral provinces raise
 against you, whether they join you when the crown is contested, and the price of works. It
 replaces the original's invisible fame with something the player steers from the map.
 
 ## Difficulty and accessibility
 
-Three named settings changing AI income, AI aggression and the size of the hidden roll, all listed.
-Set-piece timing is never a difficulty setting; a "generous timing" option lives in accessibility.
-All input works with keyboard, gamepad or mouse and touch.
+Three named settings changing AI income, AI aggression and the width of the roll, all listed.
+Nothing in the game needs reflexes, so accessibility is about text size, colour-blind province
+fills (a pattern per lord as well as a colour), and full keyboard or touch play.

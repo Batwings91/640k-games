@@ -9,8 +9,7 @@ shelved without waste. Durations are rough and assume one person part-time.
 | 1 | **Paper prototype** of the campaign turn, 2 weeks | The map layer is interesting on its own | A printable map, counters, and the turn rules on one page; three play sessions with notes |
 | 2 | **Map and economy prototype** (done first, `prototype/campaign.html`) | Land, income and armies are fun with nothing else | Browser map, provinces, income, tax, garrisons, recruit, move, auto-battle, AI rivals, victory |
 | 3 | **Campaign proper**, 4 weeks | The prototype's loop survives real data | Hand-made map with features and works, seasons, save/load, the income ledger screen, victory and score |
-| 4 | **Siege set-piece** (prototype done, `prototype/siege.html`) + auto-resolve, 2 weeks | The best mini-game earns its minute | Wired into the campaign with an "auto-resolve at shown odds" button |
-| 4b | **Joust and raid**, 3 weeks, *may be cut* | The other mini-games justify themselves | Both playable from practice; each has auto-resolve; the strategy-only toggle hides them |
+| 4 | **Contest screen**, 2 weeks | One points-and-odds screen serves battle, siege, tournament and raid | Itemised points, odds, stance or wager, itemised result; the catapult prototype is shelved |
 | 5 | **Court, reputation, event deck**, 3 weeks | The drama-between-battles layer earns its place | Event JSON, court scene, reputation effects wired in |
 | 6 | **Real AI and balance**, 3 weeks | The game can be lost, and each lord plays differently | Personality planners, the headless balance runner, tuned tables |
 | 7 | **Art and music pass**, 4 to 6 weeks | It looks and sounds like the pitch | All screens painted to the palette, music per scene, transitions, title |
@@ -25,5 +24,5 @@ paper prototype says the map layer needs the most work.
 
 ## What to build first, concretely
 
-The map. Both prototypes now exist; the campaign one is where the time goes. The siege waits until
-the map loop is proven, and the joust and raid are only built if the map game wants them.
+The map. The campaign prototype is where the time goes. There are no action mini-games to build;
+the contest screen is UI over the same resolver the map already uses.

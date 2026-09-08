@@ -3,9 +3,10 @@
 Decisions that change the work materially, so they are yours. The rest of the design proceeds on the
 assumptions noted in brackets.
 
-1. **Keep/cut list.** Decided: the land-and-income strategy is the core and is emphasised. Still
-   open: which mini-games survive at all. (Assumed: siege stays as a short optional set-piece;
-   joust and raid are candidates for cutting, and every set-piece has auto-resolve.)
+1. **Keep/cut list.** Decided: land and income are the core; the joust and the swordfight are cut
+   as action games and survive as a sealed-wager tournament and a points-check raid. The catapult
+   is shelved. Still open: whether the tournament's blind purse is the right mechanism or a plain
+   points contest is cleaner.
 2. **Look.** Decided: 800x600, 256-colour VGA palette. Your visual references decide the painting
    style within that.
 3. **Setting.** Decided: England, real regions, invented lords. Still open: whether Wales stays on

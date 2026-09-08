@@ -70,11 +70,11 @@ These are the rules the rest of the design answers to, in priority order.
   a map decision, it is cut.
 - **Income is the score.** The income line is always on screen. Land is worth different amounts,
   and holding land well (garrisons, works, fair tax) pays more than holding a lot of it badly.
-- **Set-pieces are short and optional.** Each mini-game lasts under a minute, can be auto-resolved
-  with the odds shown, and a "strategy only" toggle removes them entirely. Playing them well earns
-  a margin, never the game.
-- **Every scene readable, every mini-game learnable.** Each mini-game has a visible tell, a clear
-  input, and a skill ceiling. Practice mode from the main menu. If a player loses, they know why.
+- **No action mini-games.** The joust and the swordfight are gone as things you steer. Every
+  contest, battle, siege, tournament, raid, is resolved by one visible points-and-odds system with
+  a single decision (a stance or a wager). Turn-based throughout, like Risk with the dice shown.
+- **Every contest readable.** Points itemised before and after, odds shown, one decision. If a
+  player loses, they can see what decided it.
 - **Strategy that matters without getting bigger.** Keep the small numbers. Add *reasons*: terrain,
   roads, harvest, alliances, reputation. Depth from interaction, not from scale.
 - **Forty minutes to a crown.** A full campaign fits in a lunch break. Longer maps are an option,
