@@ -136,10 +136,15 @@ herald says what to do.
 - **Title**: the crown over a dark map of England, the 640K Games mark, "Continue" and "New".
 - **Results**: the coronation or defeat painting, the score on parchment, the seed.
 
-## 6. Motion and sound, deliberately small
+## 6. Motion and sound
 
-Nothing needs reflexes. Motion is for feedback: rim pulses, the hourglass turn, the three-flash
-event, the card lift, the parchment unroll (four frames), the season flip. Sound: a coin for
+Nothing needs reflexes. Feedback motion: rim pulses, the hourglass turn, the three-flash
+event, the card lift, the parchment unroll (four frames), the season flip. Ambient motion,
+chosen by the owner: the sea shimmers (a two-frame dither cycle on the swell), cloud shadows
+drift across the land (two sprites on a slow loop), seat banners wave (three frames), the rider
+trots along the road when an army marches (half a second, which doubles as feedback), smoke
+curls over unrest, torches flicker in interior scenes. Ambient motion is quiet enough to ignore
+and never the only signal of anything. Sound: a coin for
 purchases, hooves for a march, a clash for battle, a chord for the season, a fanfare for the
 crown, all synthesised as the technical plan says, with a music slot for CC0 loops.
 
@@ -198,8 +203,17 @@ The rendering layer is rewritten; `sim.js`, `scenes.js` and the balance runner a
 
 Each step is playable at the end of it. The owner sees step 2 before anything is painted.
 
-## 10. What the owner decides before painting starts
+## 10. Decisions taken (September 2026)
 
-- Who makes the paintings and portraits (see section 7), and therefore the budget.
-- Approve the palette swatch and one test painting (a province of the map) before the rest.
-- The name of the game, since it goes on the title cartouche.
+- **Art source**: AI-generated, then hand-corrected; the generation is handed to Codex so the
+  art pass is owned there. The prompt sheet is `13-art-prompts.md`. The model's commercial-use
+  terms must be verified and recorded in `CREDITS.txt`.
+- **Map screen**: floating chrome over the sea, no side panel, as in reference 1.
+- **Motion**: feedback motion plus ambient life: sea swell and cloud shadows, banners waving,
+  riders trotting along the road on a march, smoke over unrest and torch flicker in interiors.
+  Section 6 is extended accordingly; ambient motion is subtle and never carries information.
+- **Portraits**: painted busts on parchment (reference 5). The player's earl sits top-left for
+  the whole game; the selected lord's portrait appears in dialogs.
+- **Name**: Ironcrown stays until the title screen exists.
+- Still to approve: the palette swatch, the map painting, and the first earl portrait, before
+  the batch is generated.

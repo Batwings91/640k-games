@@ -21,6 +21,7 @@ references and the keep/cut list, which will reshape most of what is here.
 | [10-review-brief.md](10-review-brief.md) | Self-contained brief for an outside review: rules, playtest findings, questions |
 | [11-build-brief.md](11-build-brief.md) | Handover for whoever builds: intent, decisions, roles, files, assets, conventions, backlog |
 | [12-visual-design.md](12-visual-design.md) | The look, from the owner's five references: palette, type, every screen, assets, pipeline, implementation order |
+| [13-art-prompts.md](13-art-prompts.md) | The art generation sheet Codex runs: style preamble, one prompt per asset, sizes, names, post-processing |
 | [references/](references/) | The five reference images (mood and layout only; nothing is copied) |
 | [10-review-brief.md](10-review-brief.md) | Stand-alone brief for an outside design review: rules, playtest findings, questions |
 | [11-build-brief.md](11-build-brief.md) | Handover brief for whoever builds the game: why it exists, decisions, roles, files, assets, conventions, backlog |
