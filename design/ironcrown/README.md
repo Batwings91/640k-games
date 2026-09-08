@@ -18,6 +18,7 @@ references and the keep/cut list, which will reshape most of what is here.
 | [07-paper-prototype.md](07-paper-prototype.md) | Milestone 1: one-page table rules for the campaign turn |
 | [08-parameters.md](08-parameters.md) | Every number in one place, and the arithmetic showing they make the intended game |
 | [09-lords.md](09-lords.md) | First-draft cast: the four earls and fourteen minor lords with temperaments |
+| [10-review-brief.md](10-review-brief.md) | Self-contained brief for an outside review: concept, rules, what exists, playtest findings, questions |
 | [prototype/campaign.html](prototype/campaign.html) | Playable campaign: choose an earl, England at 800x600, the loyalty layer (submission, vassals, dispossessed lords, court deeds), contests by points and odds, winter attrition, three victories. Needs `sim.js` beside it; `?seed=1234` fixes the levies |
 | [prototype/sim.js](prototype/sim.js) | The rules, as one file shared by the page and the balance runner; emits the events the scenes are built from |
 | [prototype/scenes.js](prototype/scenes.js) | Cut scenes as text: a line per lord on first meeting, temperament lines, and the shared scenes (homage, conquest, defection, marriage, pardon, tournament, siege, winter, crown, defeat) |

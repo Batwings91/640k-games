@@ -32,14 +32,16 @@ const seed0=(+new URLSearchParams(location.search).get('seed'))||(Date.now()&0xf
 // ---- UI state ----
 let G=null,frameN=0;
 const U={phase:'choose',sel:null,mode:null,stance:1,moveN:0,rival:1,stake:10,purse:5,offer:null,scenes:[],after:null,skipAll:false,
-  flash:null,confirm:null,play:null,tutorial:0,help:false};
+  flash:null,confirm:null,play:null,tutorial:0,help:false,guide:0};
+// guide steps: 1 select home, 2 buy a soldier, 3 attack a neighbour, 4 end season, 0 done
+try{if(localStorage.getItem('ironcrown.guided')==='1')U.guide=-1;}catch(e){}
 // phase: choose | play | offer | confirm | scene | turnplay | over.   mode: null | march | raid | marry | turn | pardon
 try{U.skipAll=localStorage.getItem('ironcrown.skipScenes')==='1';}catch(e){}
 function setSkip(v){U.skipAll=v;try{localStorage.setItem('ironcrown.skipScenes',v?'1':'0');}catch(e){}}
 function flash(s,c){U.flash={s,c:c||P.gold,t:frameN};}
 function flushScenes(next){const sc=Scenes.fromEvents(G.events,G,me());G.events.length=0;if(!sc.length||U.skipAll){if(next)next();return;}U.scenes=sc;U.sceneTotal=sc.length;U.after=next||null;U.phase='scene';}
 function nextScene(){U.scenes.shift();if(U.scenes.length)return;U.phase='play';const f=U.after;U.after=null;if(f)f();}
-function start(earl){G=Sim.createGame(seed0,earl);U.phase='play';U.rival=[0,1,2,3].find(l=>l!==earl);U.sel=G.prov.findIndex(p=>p.owner===earl&&p.home);U.tutorial=1;flushScenes();}
+function start(earl){G=Sim.createGame(seed0,earl);U.phase='play';U.rival=[0,1,2,3].find(l=>l!==earl);U.sel=null;if(U.guide!==-1)U.guide=1;flushScenes();}
 function me(){return G.player;}
 function canAct(p){return p&&p.owner===me()&&U.phase==='play';}
 function deedsLeft(){return Sim.maxDeeds(G,me())-G.deeds;}
@@ -65,14 +67,15 @@ function doConfirm(){
   const A=G.prov[c.from],leave=A.soldiers-U.moveN;
   const r=Sim.march(G,c.from,c.to,leave,U.stance);
   if(r.offer){U.offer=r.offer;flushScenes(()=>{U.phase='offer';});if(U.phase!=='scene')U.phase='offer';return;}
-  if(r.ok){G.moved=true;U.sel=c.to;flash(lastLog());}else flash(lastLog(),P.red);
+  if(r.ok){G.moved=true;U.sel=c.to;flash(lastLog());if(U.guide===3)U.guide=4;}else flash(lastLog(),P.red);
   flushScenes();
 }
-function answerOffer(accept){const o=U.offer;U.phase='play';U.offer=null;const r=Sim.march(G,o.from,o.to,o.leave,o.stance,accept);if(r.ok){G.moved=true;U.sel=o.to;flash(lastLog());}flushScenes();}
+function answerOffer(accept){const o=U.offer;U.phase='play';U.offer=null;const r=Sim.march(G,o.from,o.to,o.leave,o.stance,accept);if(r.ok){G.moved=true;U.sel=o.to;flash(lastLog());if(U.guide===3)U.guide=4;}flushScenes();}
 
 // ---- end of season: play the events back with flashing provinces, then the player's scenes ----
 function endSeason(){
   if(U.phase!=='play')return;
+  if(U.guide>0){U.guide=0;try{localStorage.setItem('ironcrown.guided','1');}catch(e){}}
   const goldBefore=G.gold[me()],landBefore=Sim.count(G,me());
   const before=G.events.length;const seasonName=Sim.season(G)+', year '+Sim.year(G);
   Sim.endSeason(G);
@@ -117,7 +120,7 @@ function hit(x,y){
       else if(U.mode==='pardon'){useDeed(Sim.pardon(G,me(),p.id));flash(lastLog());}
       U.mode=null;return;
     }
-    U.sel=p.id;U.mode=null;if(U.tutorial===1&&p.owner===me())U.tutorial=2;return;
+    U.sel=p.id;U.mode=null;if(U.guide===1&&p.owner===me()&&p.home)U.guide=2;return;
   }
 }
 cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect();hit((e.clientX-r.left)/r.width*W,(e.clientY-r.top)/r.height*H);});
@@ -134,12 +137,13 @@ addEventListener('keydown',e=>{
   if(e.key==='m'&&canAct(p))beginMarch();
   if(U.mode==='march'){if(e.key==='['||e.key==='ArrowLeft')U.moveN=Math.max(0,U.moveN-1);if(e.key===']'||e.key==='ArrowRight')U.moveN=Math.min(p.soldiers,U.moveN+1);}
 });
-function tryBuy(p,kind){const before=G.gold[me()];const ok=Sim.buy(G,me(),p.id,kind);if(ok)flash('Bought: '+kind+' for '+(before-G.gold[me()])+' gold.');else flash(lastLog(),P.red);if(ok&&U.tutorial===2)U.tutorial=3;}
+function tryBuy(p,kind){const before=G.gold[me()];const ok=Sim.buy(G,me(),p.id,kind);if(ok)flash('Bought: '+kind+' for '+(before-G.gold[me()])+' gold.');else flash(lastLog(),P.red);if(ok&&U.guide===2)U.guide=3;}
 
 // ---- drawing ----
 const FONT='bold 14px monospace',SMALL='12px monospace';
 function rect(x,y,w,h,c){g.fillStyle=c;g.fillRect(x|0,y|0,w|0,h|0);}
 function text(s,x,y,c,align,font){g.font=font||FONT;g.textBaseline='top';g.textAlign=align||'left';if(c!==P.ink){g.fillStyle=P.ink;g.fillText(s,x+1,y+1);}g.fillStyle=c||P.paper;g.fillText(s,x,y);}
+function wrap2(s,x,y,w,c,maxLines){g.font=SMALL;const words=s.split(' ');let line='',n=0;for(const wd of words){const t=line?line+' '+wd:wd;if(g.measureText(t).width>w){text(line,x,y+n*15,c,'left',SMALL);n++;line=wd;if(n>=maxLines-1){}}else line=t;if(n>=maxLines)break;}if(line&&n<maxLines)text(line,x,y+n*15,c,'left',SMALL);}
 function wrap(s,x,y,w,c,font){g.font=font||SMALL;const words=s.split(' ');let line='',yy=y;words.forEach(wd=>{const t=line?line+' '+wd:wd;if(g.measureText(t).width>w){text(line,x,yy,c,'left',font||SMALL);line=wd;yy+=15;}else line=t;});if(line)text(line,x,yy,c,'left',font||SMALL);return yy+15;}
 function path(pts){g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y));g.closePath();}
 function poly(pts,c){g.fillStyle=c;path(pts);g.fill();}
@@ -160,6 +164,15 @@ function face(x,y,s,i){const u=s/16;const R=(px,py,w,h,c)=>rect(x+px*u,y+py*u,w*
   R(5,7,2,1,P.eye);R(9,7,2,1,P.eye);R(7,9,2,1,P.skin2);R(6,12,4,1,P.hair4);
   R(0,15,16,1,P.ink);R(0,0,16,1,P.ink);R(0,0,1,16,P.ink);R(15,0,1,16,P.ink);}
 
+function homeId(){return G.prov.findIndex(p=>p.owner===me()&&p.home);}
+function guideText(){
+  const h=G.prov[homeId()];
+  if(U.guide===1)return 'FIRST: click '+h.name+', your home. It is '+EARLNAMECOL[me()]+' and marked YOU, and it is blinking.';
+  if(U.guide===2)return 'NOW: buy soldiers. Press the blinking Soldier button below; each costs 1 gold. Buy four or five.';
+  if(U.guide===3)return U.sel===homeId()?'NOW: attack. Click one of the blinking neighbours of '+h.name+' on the map. You will see the odds first.':'Click '+h.name+' again (your army is there), then click a neighbour to attack.';
+  if(U.guide===4)return 'LAST: press the blinking END SEASON button. Then it all begins again next season.';
+  return null;
+}
 function hintText(){
   const p=U.sel!==null?G.prov[U.sel]:null,mine=G.lords[me()];
   if(U.mode==='march')return 'Click a blinking neighbour to march there.';
@@ -195,6 +208,8 @@ function drawMap(){
   G.prov.forEach(p=>{
     const cell=Sim.MAP.cells[p.id],cx=cell.cx,cy=cell.cy;
     if(U.sel===p.id&&U.phase!=='turnplay')outline(cell.poly,P.white,3);
+    if(U.guide===1&&p.id===homeId()&&blinkOn)outline(cell.poly,P.gold,4);
+    if(U.guide===3&&U.sel===homeId()&&Sim.adj(homeId(),p.id)&&p.owner!==me()&&blinkOn)outline(cell.poly,P.gold,3);
     if(U.mode&&U.sel!==null&&targetable(p)&&(blinkOn||U.mode!=='march'))outline(cell.poly,P.gold,2);
     text(p.name,cx,cy-22,P.paper,'center');
     const inc=p.owner>=0?Sim.provIncome(G,p):p.base;
@@ -211,10 +226,11 @@ function drawMap(){
     if(p.home&&p.owner===me())text('YOU',cx,cy-36,P.white,'center',SMALL);
   });
   // legend
-  rect(6,508,290,86,P.ink);rect(8,510,286,82,P.grey);
-  text('N gold = pays its owner each season.  8+1k (3) = men+knights (levy)',12,513,P.paper,'left','11px monospace');
-  text('You are '+EARLNAMECOL[me()]+'. Hatching = a vassal lord. Rivals:',12,526,EARLCOL[me()][1],'left','11px monospace');
-  for(let l=0,k=0;l<4;l++){if(l===me())continue;const L=G.lords[l];rect(12,542+k*15,9,9,EARLCOL[l][0]);text(L.name+' ('+EARLNAMECOL[l]+'): '+(G.alive[l]?Sim.count(G,l)+' lands, '+Sim.income(G,l)+' gold a season'+(G.allies[Sim.key(me(),l)]>G.turn?', ally':''):'gone'),26,540+k*15,P.paper,'left','11px monospace');k++;}
+  // who is who: a small box in the Irish Sea, clear of every home corner
+  rect(6,176,124,80,P.ink);rect(8,178,120,76,P.grey);
+  rect(12,182,9,9,EARLCOL[me()][0]);text('YOU ('+EARLNAMECOL[me()]+')',26,180,EARLCOL[me()][1],'left','11px monospace');
+  for(let l=0,k=0;l<4;l++){if(l===me())continue;const L=G.lords[l];rect(12,199+k*15,9,9,EARLCOL[l][0]);text(L.name+' '+(G.alive[l]?Sim.count(G,l)+' land, '+Sim.income(G,l)+'g':'gone'),26,197+k*15,P.paper,'left','11px monospace');k++;}
+  text('(n) = local levy',12,242,P.lgrey,'left','11px monospace');
 }
 function targetable(p){
   if(U.mode==='march')return Sim.adj(U.sel,p.id);
@@ -231,9 +247,9 @@ function drawPanel(){
   face(px,34,32,me());text(G.lords[me()].name+', '+G.lords[me()].title,px+40,34,EARLCOL[me()][1],'left',SMALL);
   text('Renown '+G.lords[me()].renown,px+40,49,P.lgrey,'left',SMALL);button(px+206,34,44,20,'Help',()=>{U.help=true;},true);
   rect(px,72,250,1,P.grey);
-  let y=wrap(hintText(),px,78,250,P.gold);
-  if(U.flash&&frameN-U.flash.t<240){y=wrap(U.flash.s,px,y+2,250,U.flash.c);}
-  y=Math.max(y,124);rect(px,y,250,1,P.grey);y+=6;
+  wrap2(guideText()||hintText(),px,77,250,P.gold,2);
+  if(U.flash&&frameN-U.flash.t<300)wrap2(U.flash.s,px,110,250,U.flash.c,2);
+  let y=144;rect(px,y,250,1,P.grey);y+=6;
   const p=U.sel!==null?G.prov[U.sel]:null;
   if(!p){text('Click a province.',px,y,P.paper);return;}
   text(p.name,px,y,P.gold);y+=18;
@@ -264,7 +280,7 @@ function drawPanel(){
     if(!p.castle)y=wrap('No castle here, so no recruiting. Build one, or recruit where you have a castle.',px,y,250,P.lgrey)+2;
     const kc=Sim.season(G)==='Spring'?6:8,cc=p.feature==='quarry'?12:20;
     const needC='No castle here. Recruit where you have one.';
-    button(px,y,122,bh,'Soldier 1 gold',()=>tryBuy(p,'soldier'),gold>=1&&p.castle,!p.castle?needC:'Not enough gold.');
+    button(px,y,122,bh,'Soldier 1 gold',()=>tryBuy(p,'soldier'),gold>=1&&p.castle,!p.castle?needC:'Not enough gold.');if(U.guide===2&&((frameN>>3)&1)){g.strokeStyle=P.gold;g.lineWidth=2;g.strokeRect(px-1,y-1,124,bh+2);}
     button(px+128,y,122,bh,'Knight '+kc+' gold',()=>tryBuy(p,'knight'),gold>=kc&&p.castle&&!G.knightBought,!p.castle?needC:G.knightBought?'One knight a season, already bought.':'Needs '+kc+' gold.');y+=22;
     button(px,y,122,bh,'Engine 15 gold',()=>tryBuy(p,'engine'),gold>=15&&p.castle,!p.castle?needC:'Needs 15 gold. Engines let you assault walls.');
     button(px+128,y,122,bh,p.castle?'Castle: built':'Castle '+cc+' gold',()=>tryBuy(p,'castle'),!p.castle&&gold>=cc,p.castle?'Already a castle here.':'Needs '+cc+' gold. A castle recruits and doubles defence.');y+=22;
@@ -292,7 +308,6 @@ function drawPanel(){
   md(gap,'pardon','Pardon',G.prov.some(q=>q.owner===me()&&q.lord&&q.lord.dispossessed),'No dispossessed lord in your land.');
   button(px+gap*2,y,bw3,bh,'Ally',()=>{useDeed(Sim.ally(G,me(),U.rival));flash(lastLog());},dl>0,'No deeds left.');y+=20;
   button(px,y,bw,bh,'Draw a court card',()=>{useDeed(Sim.drawCard(G,me()));flash(lastLog());},dl>0,'No deeds left.');
-  text('Raid, tourney, ally and marry use the rival and stakes set above.',px,y+20,P.grey,'left',SMALL);
 }
 
 function draw(){
@@ -324,7 +339,7 @@ function draw(){
   const lines=G.log.slice(-3);lines.forEach((s,i)=>text(s.length>36?s.slice(0,35)+'…':s,px,524+i*15,i===lines.length-1?P.paper:P.grey,'left',SMALL));
   const endOn=U.phase==='play';
   button(px,570,250,24,(G.moved||Sim.season(G)==='Winter'?'END SEASON  (Enter)':'END SEASON (Enter), no march yet'),endSeason,endOn,'Finish what is open first.');
-  if(endOn&&G.moved&&((frameN>>4)&1))rect(px,570,250,2,P.gold);
+  if(endOn&&(G.moved||U.guide===4)&&((frameN>>3)&1)){g.strokeStyle=P.gold;g.lineWidth=3;g.strokeRect(px-1,569,252,26);}
 
   if(U.phase==='confirm'){
     const c=U.confirm,A=G.prov[c.from],D=G.prov[c.to],pv=Sim.preview(G,c.from,c.to,U.moveN,U.stance);box(120,150,560,270);
@@ -388,13 +403,6 @@ function draw(){
      '3. DEEDS. One a season (two from six provinces): raid a neighbour for gold, wager on','   a tournament, marry into a house, turn a rival\'s vassal, pardon a lord, draw a card.','',
      'Every province pays gold each season; autumn doubles it, winter halves it, no marching.','Win: hold London with a castle for a year with the highest income, or take 60% of all','income for a year, or be the last earl standing. Twelve years.','',
      'Keys: S soldier, K knight, C castle, M march, Enter end season, H help. Click to close.'].forEach((l,i)=>text(l,80,84+i*19,P.ink,'left',SMALL));
-  }
-  if(U.tutorial>=1&&U.tutorial<=2&&U.phase==='play'&&!U.help){
-    const t=U.tutorial;box(20,300,480,120);
-    const L=t===1?['HOW TO PLAY','You are '+G.lords[me()].name+'. Your land is '+EARLNAMECOL[me()]+' and marked YOU.','Click your home province to see what you can do there.','Take neighbours by marching on them; every province pays gold each season.']
-      :['NOW RECRUIT AND MARCH','Step 1 on the right: buy soldiers, 1 gold each, here at your castle.','Step 2: click a neighbouring province on the map to march on it.','You choose how many go and see the odds first. Then END SEASON. Press H for help.'];
-    L.forEach((s,i)=>text(s,30,308+i*22,i===0?P.red:P.ink,'left',i===0?FONT:SMALL));
-    button(400,394,90,20,'Got it',()=>{U.tutorial=t===1?2:0;},true);
   }
   finish();
 }
