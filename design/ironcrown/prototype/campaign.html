@@ -273,12 +273,12 @@ function drawPanel(){
     button(px,y,bw,bh,'Tax here: '+(p.tax===1?'fair':p.tax>1?'harsh (more gold, unrest rises)':'low (less gold, unrest falls)'),()=>{p.tax=p.tax===0.5?1:p.tax===1?1.5:0.5;flash('Tax at '+p.name+' is now '+(p.tax===1?'fair':p.tax>1?'harsh':'low')+'.');});y+=24;
   }
   // STEP 2: march
-  text('2. MARCH  (one army a season)',px,y,P.gold);text(G.moved?'done':Sim.season(G)==='Winter'?'winter':'ready',px+250,y,G.moved?P.lgrey:P.white,'right');y+=18;
+  text('2. MARCH  (one a season)',px,y,P.gold);text(G.moved?'done':Sim.season(G)==='Winter'?'winter':'ready',px+250,y,G.moved?P.lgrey:P.white,'right');y+=18;
   if(G.moved)y=wrap('Marched this season. Next march: '+Sim.SEASONS[(G.turn+1)%4]+'.',px,y,250,P.lgrey)+2;
   else if(Sim.season(G)==='Winter')y=wrap('No marching in winter.',px,y,250,P.lgrey)+2;
   else y=wrap('Click a neighbour of '+p.name+' on the map, or:',px,y,250,P.lgrey)+2;
-  button(px,y,150,bh,'Show where I can march',beginMarch,!G.moved&&Sim.season(G)!=='Winter'&&p.soldiers+p.knights>0,G.moved?'Already marched this season.':Sim.season(G)==='Winter'?'No marching in winter.':'No men here.');
-  button(px+156,y,94,bh,'stance: '+Sim.STANCE[U.stance],()=>{U.stance=(U.stance+1)%3;flash(['Cautious: odds -10, losses halved, a loss is a retreat.','Steady: odds as shown.','Bold: odds +10, losses doubled on defeat.'][U.stance]);});y+=26;
+  button(px,y,130,bh,'Where can I march?',beginMarch,!G.moved&&Sim.season(G)!=='Winter'&&p.soldiers+p.knights>0,G.moved?'Already marched this season.':Sim.season(G)==='Winter'?'No marching in winter.':'No men here.');
+  button(px+136,y,114,bh,'stance: '+Sim.STANCE[U.stance],()=>{U.stance=(U.stance+1)%3;flash(['Cautious: odds -10, losses halved, a loss is a retreat.','Steady: odds as shown.','Bold: odds +10, losses doubled on defeat.'][U.stance]);});y+=26;
   // STEP 3: deeds
   const dl=deedsLeft();text('3. DEEDS',px,y,P.gold);text(dl+' left',px+250,y,dl?P.white:P.lgrey,'right');y+=18;
   const bw3=80,gap=85;
@@ -288,7 +288,7 @@ function drawPanel(){
   md(gap*2,'marry','Marry 15g',G.lords[me()].renown>=5&&gold>=15,'Needs renown 5 and 15 gold.');y+=20;
   button(px,y,bw3,bh,'v '+G.lords[U.rival].name.slice(0,6),()=>{do{U.rival=(U.rival+1)%4;}while(U.rival===me()||!G.alive[U.rival]);},true);
   button(px+gap,y,bw3,bh,'stake '+U.stake,()=>{U.stake=U.stake>=20?5:U.stake+5;},true);button(px+gap*2,y,bw3,bh,'purse '+U.purse,()=>{U.purse=U.purse>=15?0:U.purse+5;},true);y+=20;
-  md(0,'turn','Turn vassal',true,'');
+  md(0,'turn','Turn',true,'');
   md(gap,'pardon','Pardon',G.prov.some(q=>q.owner===me()&&q.lord&&q.lord.dispossessed),'No dispossessed lord in your land.');
   button(px+gap*2,y,bw3,bh,'Ally',()=>{useDeed(Sim.ally(G,me(),U.rival));flash(lastLog());},dl>0,'No deeds left.');y+=20;
   button(px,y,bw,bh,'Draw a court card',()=>{useDeed(Sim.drawCard(G,me()));flash(lastLog());},dl>0,'No deeds left.');
