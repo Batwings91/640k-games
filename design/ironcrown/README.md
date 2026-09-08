@@ -15,6 +15,8 @@ references and the keep/cut list, which will reshape most of what is here.
 | [04-platforms-and-monetisation.md](04-platforms-and-monetisation.md) | itch.io, Steam, portals; pricing; what each platform needs from the build |
 | [05-roadmap.md](05-roadmap.md) | Milestones from paper prototype to launch, with what each proves |
 | [06-open-questions.md](06-open-questions.md) | Decisions that need you, and the reference material still to come |
+| [07-paper-prototype.md](07-paper-prototype.md) | Milestone 1: one-page table rules for the campaign turn |
+| [prototype/siege.html](prototype/siege.html) | Milestone 2: playable siege set-piece, open the file in a browser (`?seed=1234` fixes the wall and wind) |
 
 ## Legal note, up front
 
