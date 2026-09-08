@@ -165,3 +165,9 @@ hr { border: 0; border-top: 1px dashed var(--line); margin: 2.5em 0; }
 .gallery figure { margin: 0; border: 4px double var(--line); background: var(--black); }
 .gallery img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
 .gallery figcaption { font-size: 13px; color: var(--grey); padding: 8px 12px; border-top: 1px solid var(--line); }
+
+/* Compact credits: small, quiet, one line per source */
+.credits.compact { font-size: 13px; color: var(--grey); max-width: 70ch; }
+.credits.compact li { padding: 5px 0; border-bottom: 0; }
+.credits.compact .what { color: var(--white); }
+.credits.compact .lic { font-size: 12px; }
