@@ -36,8 +36,11 @@ doubles farm income. Winter: no movement, half income, garrisons matter. A defau
     leaves.
 - **Roads** are the only full-speed routes. Chokepoints (bridge, pass, ford) are where the fights
   happen, so holding one province can shield three.
-- **Neutral provinces** start with local levies (3 to 8 soldiers). They are the early game: cheap
-  land at first, expensive later because the levies grow if nobody takes them.
+- **Every province has a lord.** The fourteen provinces not held by the four earls belong to
+  minor lords with names, portraits and cut scenes (decided September 2026). At the start they hold
+  their land with a levy of 2 to 5 that grows each winter if nobody takes it. What else can be
+  done with them (submission, alliance, marriage, vassalage) is question 1 in
+  `06-open-questions.md`.
 - **London is the crown province**: walled and garrisoned by the city from the start, the biggest
   income on the map, and it takes a siege engine to assault. It is the late game. The four homes are the corners:
   Northumbria, Cornwall, Norfolk and Chester.
