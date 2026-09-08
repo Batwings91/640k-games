@@ -84,6 +84,9 @@ menu with fake inputs, which is also how it gets developed first.
 - Export/import as a short text code (seed + compressed action log) so a save can move between the
   browser build and the desktop build with no server.
 - No accounts, no server, no analytics beyond what the portals inject.
+- The action log is the save. Because the simulation is deterministic, replaying the log from the
+  seed rebuilds the state. This is kept strict from day one so that an online mode, decided as a
+  separate post-launch project, can run lockstep on two machines by exchanging the same log.
 
 ## Headless balance runner
 

@@ -10,13 +10,15 @@ Season turn
   1. Ledger        — income arrives, upkeep leaves, the income line updates on screen
   2. Rule          — set tax per province, build works, recruit, garrison
   3. March         — move armies along roads; battles resolve where armies meet
-  4. One deed      — tournament, raid or court (optional; pass banks 2 gold)
+  4. Deeds         — tournament, raid or court; one a season, two from six provinces (pass banks 2 gold)
   5. Rivals move   — visibly, fast-forwardable
 Repeat until one lord holds the crown, one lord holds enough income, or the years run out.
 ```
 
 Four seasons make a year. Spring: recruitment is cheaper. Summer: full movement. Autumn: harvest
-doubles farm income. Winter: no movement, half income, garrisons matter. A default campaign is
+doubles farm income. Winter: no movement, half income, and any stack of more than three men in a
+province without a castle loses a tenth of its men to the cold (at least one). Winter punishes an
+army left in the field. A default campaign is
 12 years (48 turns), 30 to 45 minutes.
 
 ## The map
@@ -157,14 +159,70 @@ plague, good harvest, treachery. Cheap to build, feeds the map, stays.
 - **Defeat**: lose your last castle. **Time**: after 12 years, the highest income wins.
 - **Score**: years taken, peak income, provinces, renown, a title. The seed on the result screen.
 
-## Lords
+## Lords of the land
 
-Four lords, each with a home corner and three visible stats from 1 to 3 that change map
-decisions: *Leadership* (points in battle), *Stewardship* (+1 gold per 4 provinces per point),
-*Cunning* (raids), plus starting *Renown*. The far corners (Northumbria, Cornwall) start with two
-provinces because they are further from London; the near corners (Norfolk, Chester) start with
-one. Rivals are the lords you did not pick, played by an AI with a matching personality:
-builder, raider, hoarder, opportunist. Full numbers in `08-parameters.md`.
+Decided September 2026: every one of the eighteen provinces has a lord, and the lords are a
+loyalty layer over the map, not decoration.
+
+### The four earls
+
+The player chooses one of four earls at the start; the other three are AI rivals with fixed
+personalities. Each has a home corner and three visible stats from 1 to 3: *Leadership* (points in
+battle), *Stewardship* (+1 gold per 4 provinces per point), *Cunning* (raids and turning vassals),
+plus starting *Renown*. The far corners (Northumbria, Cornwall) start with two provinces; the near
+corners (Norfolk, Chester) with one.
+
+### The fourteen minor lords
+
+Each has a name, a house, a portrait, and a **temperament** that sets how they behave:
+*proud* (hard to make submit, loyal once sworn), *greedy* (submits for gold, loyalty follows your
+income), *fearful* (submits easily, loyalty follows your army), *loyal* (never submits to force,
+loyal for life once won by marriage or pardon). At the start each holds their province with a levy.
+
+### Submission
+
+March on a minor lord's province and, before any battle, they may offer to **submit**. They offer
+when your attack points exceed their defence points by their temperament's factor (fearful 1.5x,
+greedy and loyal 2x, proud 3x; loyal lords never offer to force). Accept, and the province becomes
+your **vassal**: its income comes to you at fair tax (you cannot set tax there), its garrison stays
+theirs and defends for you, and the lord keeps their seat. Refuse, or lose the battle, and it is
+conquest: the lord is **dispossessed** and the land is yours to tax and garrison directly.
+
+### Loyalty
+
+Every vassal has a visible **loyalty** from 0 to 10, starting at 5 (7 by marriage or pardon). Each
+season: +1 if your renown rose this year, +1 for greedy lords when your income is the highest on
+the map, +1 for fearful lords when your army is the largest, −1 if your renown fell, −1 if a
+neighbouring province of yours revolted, −2 if you march troops through their land without asking
+(a march that ends there). A rival's *turn vassal* court deed rolls their cunning against loyalty.
+At 8 or more a vassal sends levies with your marches (+2 men on any march from a neighbouring
+province). At 0 the vassal **defects** to the strongest neighbouring earl, or back to independence.
+
+### Dispossessed lords
+
+A lord who lost their land by conquest flees to the court of the earl who hates you most. Each
+season they are there, if unrest in their old province is 2 or more, there is a chance
+(10% × the host's cunning) that they return and the province revolts back to them as an
+independent lord. A **pardon** court deed brings them home as your vassal at loyalty 7 and ends the
+threat; it costs renown if they were proud, gold if they were greedy.
+
+### Court deeds aimed at named lords
+
+Court is no longer a random deck alone. A court deed names a lord:
+- **Alliance** with an earl: neither attacks the other for four seasons; breaking it costs 3 renown.
+- **Marriage** into a minor lord's house: their province becomes your vassal at loyalty 7. Needs
+  renown 5 or more, 15 gold, and a shared border. Loyal lords accept only this or a pardon.
+- **Turn vassal**: your cunning against a rival's vassal's loyalty; success brings them to you.
+- **Pardon**: as above.
+The random deck (plague, harvest, outlaws, treachery) stays for the seasons when nobody needs
+courting.
+
+### Cut scenes
+
+Sparing, as in the original: one painted scene per lord (18) and about a dozen shared scenes
+(first meeting, submission, conquest, defection, marriage, pardon, tournament, siege, coronation,
+defeat, the herald's news, the winter). Two or three lines each. One press skips, and the game
+remembers that choice. Full numbers in `08-parameters.md`.
 
 ## Renown
 

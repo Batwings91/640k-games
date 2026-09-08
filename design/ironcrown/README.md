@@ -17,6 +17,7 @@ references and the keep/cut list, which will reshape most of what is here.
 | [06-open-questions.md](06-open-questions.md) | Decisions that need you, and the reference material still to come |
 | [07-paper-prototype.md](07-paper-prototype.md) | Milestone 1: one-page table rules for the campaign turn |
 | [08-parameters.md](08-parameters.md) | Every number in one place, and the arithmetic showing they make the intended game |
+| [09-lords.md](09-lords.md) | First-draft cast: the four earls and fourteen minor lords with temperaments |
 | [prototype/campaign.html](prototype/campaign.html) | Milestone 2: playable map campaign, land, income, tax, garrisons, three AI lords, three victory conditions. England at 800x600. Open in a browser; `?seed=1234` fixes the levies |
 | [prototype/siege.html](prototype/siege.html) | Shelved catapult set-piece, kept for reference only (320x200) |
 

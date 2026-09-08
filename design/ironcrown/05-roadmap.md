@@ -10,14 +10,15 @@ shelved without waste. Durations are rough and assume one person part-time.
 | 2 | **Map and economy prototype** (done first, `prototype/campaign.html`) | Land, income and armies are fun with nothing else | Browser map, provinces, income, tax, garrisons, recruit, move, auto-battle, AI rivals, victory |
 | 3 | **Campaign proper**, 4 weeks | The prototype's loop survives real data | Hand-made map with features and works, seasons, save/load, the income ledger screen, victory and score |
 | 4 | **Contest screen**, 2 weeks | One points-and-odds screen serves battle, siege, tournament and raid | Itemised points, odds, stance or wager, itemised result; the catapult prototype is shelved |
-| 5 | **Court, reputation, event deck**, 3 weeks | The drama-between-battles layer earns its place | Event JSON, court scene, reputation effects wired in |
+| 5 | **Lords and loyalty**, 4 weeks | The loyalty layer makes the map richer without slowing the turn | Eighteen lords in JSON with temperaments, submission, vassals, loyalty, defection, dispossessed lords, court deeds aimed at named lords |
+| 5b | **Cut scenes**, 3 weeks (art in milestone 7) | Scenes are sparing, skippable, and land | Scene system, text for all ~30 scenes, placeholder paintings |
 | 6 | **Real AI and balance**, 3 weeks | The game can be lost, and each lord plays differently | Personality planners, the headless balance runner, tuned tables |
 | 7 | **Art and music pass**, 4 to 6 weeks | It looks and sounds like the pitch | All screens painted to the palette, music per scene, transitions, title |
 | 8 | **Playtest via the unlisted link**, 3 weeks | Strangers can learn it without help | Ten external testers, a feedback form, a fix list |
 | 9 | **itch.io release with demo**, 2 weeks | People pay for it | Store page, HTML5 and zip builds, demo build, trailer, `games/ironcrown.html` on the site |
 | 10 | **Portal demos** (CrazyGames, Poki), 2 weeks | The demo brings traffic | Demo with SDK hooks, portal submissions |
 | 11 | **Steam build**, 4 weeks, *gated on 9 showing interest* | The desktop wrapper and store assets | Electron/Tauri build, Steamworks, achievements, page, keys for itch buyers |
-| 12 | **Post-launch**: second map, random map generator, extra lords | Replay value for the long tail | Free updates, each a devlog |
+| 12 | **Post-launch**: commissioned score if sales justify it; then online multiplayer as a separate project (server, lockstep replay of the action log) | Replay value for the long tail | Free updates, each a devlog |
 
 Roughly nine months to the itch release at a part-time pace. Milestones 2 and 3 can swap if the
 paper prototype says the map layer needs the most work.

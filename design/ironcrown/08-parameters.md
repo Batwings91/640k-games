@@ -13,7 +13,7 @@ start where they do.
 | Campaign length | 12 years, 48 seasons | About 40 minutes at under a minute a season |
 | Spring | knights cost 6 instead of 8 | A recruiting season |
 | Autumn | base income ×2 | The harvest is the year's plan |
-| Winter | base income ×0.5, no marching | Garrisons and treasuries matter |
+| Winter | base income ×0.5, no marching, field attrition | Any stack over 3 men in a province with no castle loses 10% (min 1) |
 
 ## Map (England and Wales, 18 provinces)
 
@@ -74,6 +74,23 @@ every season up to 16, so the crown gets harder the longer it waits.
 Starting army per lord: 8 soldiers and 1 knight at home. One army marches a season, one road step,
 two through your own land.
 
+## Deeds and lords
+
+| Parameter | Value |
+|---|---|
+| Deeds a season | 1; 2 from six provinces held |
+| Submission offer | attack points ≥ defence × 1.5 (fearful), × 2 (greedy, loyal by marriage only), × 3 (proud) |
+| Vassal income | province pays at fair tax, minus 1 kept by the lord |
+| Loyalty start | 5 by submission; 7 by marriage or pardon |
+| Loyalty per season | +1 renown rose this year; +1 greedy if your income is highest; +1 fearful if your army is largest; −1 renown fell; −1 a neighbouring province revolted; −2 marched through their land |
+| Loyalty 8+ | +2 levies on your marches from a neighbouring province |
+| Loyalty 0 | defects to the strongest neighbouring earl, or independence |
+| Turn vassal | rival cunning (1 to 3) vs loyalty ÷ 3, contest odds |
+| Marriage | renown ≥ 5, 15 gold, shared border |
+| Pardon | 2 renown (proud) or 10 gold (greedy); others free |
+| Dispossessed return | 10% × host earl's cunning each season, only if the old province's unrest ≥ 2 |
+| Alliance | 4 seasons; breaking it costs 3 renown |
+
 ## Contests
 
 | Parameter | Value |
@@ -128,6 +145,16 @@ year three when the levy reaches 16. Taking it needs an engine (15) and about 24
 odds, or 30 for comfort: eight knights' worth, or a 20-soldier stack with three knights. No lord
 has that before year five without going harsh on tax, and the crown then needs four seasons of
 holding with the highest income, which invites everyone else's siege. That is the intended climax.
+
+**Winter attrition.** A 20-man stack wintering in the field loses 2 men a season, 4 over the
+winter if it stays out through two winter turns. That is a knight's worth of gold a year for
+leaving an army outside walls, enough to make the player bring it home, not enough to cripple.
+
+**Vassals versus conquest.** A vassal pays base minus 1 and needs no garrison; a conquered
+province pays base and can be taxed harsh but needs 2 men and a castle to hold. On a 3-base
+province that is 2 a season with no cost, against 3 (or 4 harsh) with 20 gold of castle and an
+upkeep-free garrison. Vassalage is the cheap fast way to spread; conquest is the way to hold the
+rich land you mean to keep. That is the intended choice.
 
 **Time.** Under a minute a season for the player's part, and the AI turn is visible but instant.
 48 seasons is 35 to 45 minutes including contests. If playtests run long, the first lever is a
