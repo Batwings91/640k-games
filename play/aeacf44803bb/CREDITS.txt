@@ -143,6 +143,11 @@ Modular player hull (assets/player_hull.png):
 Siege cannon housings and Seeker Orb:
   Original procedural artwork by 640K Games, drawn by game code; no third-party assets.
 
+Workshop equipment wall, module thumbnails and locked side-laser hardpoint marker:
+  Original runtime UI composition by 640K Games, drawn by game code in 2026-09-08.
+  Thumbnails reuse the credited player hull and existing procedural equipment renderers; no new third-party or binary art.
+  Design/provenance: docs/ship-shop-foundation-20260908.md.
+
 Spore Wilds background (assets/world_wilds.webp):
   Original AI-assisted artwork generated with OpenAI image generation for 640K Games, 2026-09-08.
   Based on the approved original five-world concept sheet; no third-party source pack.
@@ -169,3 +174,12 @@ Tendril Warden (warden_body.webp): original AI-assisted artwork generated with O
 Brood Heart background (world_brood.webp): original AI-assisted OpenAI artwork under 640K Games direction, 2026-09-08. No third-party pack. See docs/brood-heart-20260908.md.
 
 Colony creature (colony_body.webp): original AI-assisted OpenAI artwork under 640K Games direction, 2026-09-08. No third-party pack. See docs/colony-20260908.md.
+
+Phase 4 alien-family silhouette study (docs/phase4-creature-silhouettes.png):
+  Original design reference generated with OpenAI built-in image generation under 640K Games art direction, 2026-09-08.
+  No uploaded reference image or third-party asset pack was used. The sheet is documentation and is not loaded at runtime.
+  Exact prompt, family mapping and production-use notes: docs/phase4-creature-design.md.
+
+Carapace Rammer, Tendril Hunter, Spore Ray membrane/projectile and Brood Lattice:
+  Original procedural Canvas artwork by 640K Games, 2026-09-08. No third-party assets.
+  Design and gameplay contract: docs/phase4-creature-design.md.
