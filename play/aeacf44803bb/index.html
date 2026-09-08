@@ -402,7 +402,9 @@ const STARS=[];for(let i=0;i<20;i++)STARS.push({x:Math.random()*X(PW),y:Math.ran
 const WORLDS=[
   {name:'ORBITAL FOUNDRY',detail:'OUTER INDUSTRIAL BELT',accent:'#a9b6c0',asset:'world_foundry'},
   {name:'INFECTED SALVAGE',detail:'THE MACHINES ARE CHANGING',accent:'#bc92d5',asset:'world_salvage'},
-  {name:'SPORE HEART',detail:'BEYOND THE LAST MACHINE',accent:'#c09ba9',asset:'world_heart'}
+  {name:'SPORE WILDS',detail:'THE FOREST IS WATCHING',accent:'#aca978',asset:null},
+  {name:'LIVING LABYRINTH',detail:'THROUGH THE RIBS OF THE WORLD',accent:'#ad9dc3',asset:null},
+  {name:'BROOD HEART',detail:'SILENCE THE SOURCE',accent:'#d69391',asset:'world_heart'}
 ];
 const WORLD_TILES=WORLDS.map((world,stage)=>{
   const tile=document.createElement('canvas');tile.width=X(PW);tile.height=TH;
@@ -462,11 +464,19 @@ const WORLD_TILES=WORLDS.map((world,stage)=>{
       for(let x=136;x<PW-120;x+=17){g.beginPath();g.moveTo(x,0);for(let y=0;y<=height;y+=4)g.lineTo(x+Math.sin(y/height*Math.PI*4+x)*7,y);g.stroke();}
     }
   }
+  if(stage===2){
+    g.fillStyle='#0b1113';g.fillRect(0,0,PW,height);
+    for(let y=0;y<height;y+=90)for(const side of [0,1]){const x=side?PW-35:35;g.strokeStyle='#354136';g.lineWidth=10;g.beginPath();g.moveTo(x,y+70);g.quadraticCurveTo(x+(side?-18:18),y+30,x,y);g.stroke();for(let j=0;j<3;j++){g.fillStyle=['#485043','#596044','#38453e'][j];g.beginPath();g.ellipse(x+(j-1)*14,y+22+j*9,26-j*4,10,side?0.4:-0.4,0,Math.PI*2);g.fill();}}
+  }
+  if(stage===3){
+    g.fillStyle='#111019';g.fillRect(0,0,PW,height);
+    for(let y=-80;y<height+80;y+=80)for(const side of [0,1]){g.save();g.translate(side?PW:0,y);g.scale(side?-1:1,1);g.strokeStyle='#403746';g.lineWidth=18;g.beginPath();g.moveTo(-10,0);g.quadraticCurveTo(90,15,84,70);g.stroke();g.strokeStyle='#756774';g.lineWidth=3;g.stroke();g.restore();}
+  }
   return tile;
 });
 let worldStage=0,worldFrom=0,worldFade=0,worldNotice=0,worldScroll=0;
-const worldForWave=wave=>Math.min(2,Math.floor(Math.max(0,wave-1)/5));
-function resetWorld(){worldStage=worldFrom=worldForWave(STARTWAVE+1);worldFade=0;worldNotice=240;worldScroll=0;}
+const worldForWave=wave=>Math.min(4,Math.floor(Math.max(0,wave-1)/5));
+function resetWorld(wave=STARTWAVE+1){worldStage=worldFrom=worldForWave(wave);worldFade=0;worldNotice=240;worldScroll=0;}
 function updateWorld(){
   worldScroll+=1.1;
   if(worldFade>0)worldFade--;if(worldNotice>0)worldNotice--;
@@ -622,7 +632,7 @@ function txt(s,x,y,col=C.text,size=14,align='left'){
 // SFX: synthesised 8-bit effects, OPL-style fallback music, streamed main track, mute, tab audio ownership.
 // ---------- Sound Blaster-style audio: OPL2 FM music + one 8-bit digitised channel ----------
 const SFX=(function(){
-  let ac=null,master=null,musicBus=null,pcmBus=null,muted=false,musicMuted=false,seq=null;
+  let ac=null,master=null,musicBus=null,pcmBus=null,pcmLP=null,previewBus=null,muted=false,musicMuted=false,seq=null;
   try{muted=localStorage.getItem('640k.mute')==='1';const m=localStorage.getItem('640k.musicMute');musicMuted=m===null?muted:m==='1';if(m===null)localStorage.setItem('640k.musicMute',musicMuted?'1':'0');}catch(e){}
   let audioBlocked=false,previewUntil=0;
   const volume={sound:1,music:1};
@@ -632,15 +642,18 @@ const SFX=(function(){
   function sample(k,rate=1){const a=ctx();if(!a||!samples[k])return false;if(k==='impact'&&a.currentTime-lastImpact<0.045)return true;if(k==='impact')lastImpact=a.currentTime;if(k==='burst'&&a.currentTime-lastBurst<0.06)return true;if(k==='burst')lastBurst=a.currentTime;
     const src=a.createBufferSource();src.buffer=samples[k];src.playbackRate.value=rate;src.connect(pcmBus);src.start();return true;}
   function setVolume(k,v){if(!(k in volume))return;volume[k]=Math.max(0,Math.min(1,Math.round(v*10)/10));try{localStorage.setItem('640k.volume.'+k,String(volume[k]));}catch(e){}
-    if(pcmBus)pcmBus.gain.value=muted?0:0.8*volume.sound;
+    if(pcmBus)pcmBus.gain.value=muted?0:0.8*volume.sound;if(previewBus)previewBus.gain.value=0.8*volume.sound;
     if(musicBus)musicBus.gain.value=mainOn?0.5*volume.music:0;
     const tr=TR.main;if(tr.g&&ac){tr.g.gain.cancelScheduledValues(ac.currentTime);tr.g.gain.setTargetAtTime(mainOn?Math.max(0.0001,tr.gain*volume.music):0.0001,ac.currentTime,0.06);}}
-  function preview(k){previewUntil=performance.now()+5000;if(k!=='music')S.boom(false);}
+  // The title TEST buttons must be audible even when that channel is switched off, or they read as broken: the
+  // sound preview plays through its own bus at the row's volume, bypassing the mute but not the lowpass.
+  function preview(k){previewUntil=performance.now()+5000;if(k==='music')return;const a=ctx();if(!a)return;
+    if(!previewBus){previewBus=a.createGain();previewBus.connect(pcmLP);}previewBus.gain.value=0.8*volume.sound;pcm('previewBoom',0.55,explosion(0.55,0),11025,127,previewBus);}
   function stopPreview(){previewUntil=0;}
 
   function ctx(){if(document.hidden||audioBlocked)return null;if(!ac){const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;ac=new A();master=ac.createGain();master.gain.value=0.6;master.connect(ac.destination);
       musicBus=ac.createGain();musicBus.gain.value=0.5*volume.music;musicBus.connect(master);
-      pcmBus=ac.createGain();pcmBus.gain.value=muted?0:0.8*volume.sound;const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=5200;pcmBus.connect(lp);lp.connect(master);loadSamples(ac);}
+      pcmBus=ac.createGain();pcmBus.gain.value=muted?0:0.8*volume.sound;pcmLP=ac.createBiquadFilter();pcmLP.type='lowpass';pcmLP.frequency.value=5200;pcmBus.connect(pcmLP);pcmLP.connect(master);loadSamples(ac);}
     if(ac.state==='suspended')ac.resume();return ac;}
 
   // --- OPL2-style 2-op FM voice with ADSR, sine operators, optional vibrato ---
@@ -734,8 +747,8 @@ const SFX=(function(){
       // Author's 140-BPM loop: 76 bars. Preserve its musical tail instead of silence-trimming it.
       t.buf=buf;t.loopEnd=Math.min(buf.duration,76*4*60/140);
       if(cur===k&&!t.src)play(k);}).catch(()=>{t.busy=false;});}
-  function setMusicStage(stage){musicStage=Math.max(0,Math.min(2,stage|0));const t=TR.main;if(!t.filter||t.stage===musicStage||!ac)return;
-    const mixes=[[14000,0,0],[9500,1.5,0.10],[6500,3,0.18]],m=mixes[musicStage];t.stage=musicStage;
+  function setMusicStage(stage){musicStage=Math.max(0,Math.min(4,stage|0));const t=TR.main;if(!t.filter||t.stage===musicStage||!ac)return;
+    const mixes=[[14000,0,0],[9500,1.5,0.10],[8500,2,0.12],[7200,2.5,0.15],[6500,3,0.18]],m=mixes[musicStage];t.stage=musicStage;
     t.filter.frequency.setTargetAtTime(m[0],ac.currentTime,0.5);t.bass.gain.setTargetAtTime(m[1],ac.currentTime,0.5);t.echo.gain.setTargetAtTime(m[2],ac.currentTime,0.5);
   }
   function play(k){const a=ctx();const t=TR[k];if(!a||!t.buf||t.src)return;if(seq){clearInterval(seq);seq=null;}
@@ -776,6 +789,8 @@ const SFX=(function(){
   function bossTheme(on){/* boss track removed: main theme plays throughout */}
   function loadBoss(){loadTrack('main');}
   function toggleMute(){muted=!muted;if(pcmBus)pcmBus.gain.value=muted?0:0.8*volume.sound;try{localStorage.setItem('640k.mute',muted?'1':'0');}catch(e){}return muted;}
+  // Only the off side is handled here: stepLogic() calls music() every step, so switching back on takes effect
+  // on the next step for whichever mode is current.
   function toggleMusic(){musicMuted=!musicMuted;if(musicMuted)music(false);try{localStorage.setItem('640k.musicMute',musicMuted?'1':'0');}catch(e){}return musicMuted;}
   return Object.assign(S,{music,bossTheme,toggleMute,toggleMusic,setVolume,getVolume:k=>volume[k],preview,stopPreview,previewing:()=>performance.now()<previewUntil,isMuted:()=>muted,isMusicMuted:()=>musicMuted,unlock:ctx,preload:loadBoss});
 })();
@@ -813,7 +828,7 @@ addEventListener('keydown',e=>{
     else if(e.code==='ArrowUp'||e.code==='KeyW')shopSel=shopItem;
     else if(shopSel<3&&(e.code==='ArrowLeft'||e.code==='ArrowRight')){shopSel=(shopSel+(e.code==='ArrowLeft'?2:1))%3;shopItem=shopSel;}
   }
-  if(mode==='sector'&&!e.repeat&&(e.code==='ArrowUp'||e.code==='ArrowDown'||e.code==='KeyW'||e.code==='KeyS'))sectorSel=1-sectorSel;
+  if((mode==='sector'||mode==='victory')&&!e.repeat&&(e.code==='ArrowUp'||e.code==='ArrowDown'||e.code==='KeyW'||e.code==='KeyS'))sectorSel=1-sectorSel;
   if(mode==='dead'&&!e.repeat){const n=deadOptions().length;if(e.code==='ArrowUp'||e.code==='KeyW')deadSel=(deadSel+n-1)%n;if(e.code==='ArrowDown'||e.code==='KeyS')deadSel=(deadSel+1)%n;}
   if(mode==='title'&&titleSel>=2){const k=titleSel===2?'sound':'music';if(e.code==='ArrowLeft'||e.code==='ArrowRight'){SFX.setVolume(k,SFX.getVolume(k)+(e.code==='ArrowLeft'?-0.1:0.1));SFX.preview(k);}if(e.code==='KeyV'&&!e.repeat)SFX.preview(k);}
   if(mode==='title'){if(e.code==='ArrowUp'||e.code==='KeyW')titleSel=(titleSel+TITLE_BUTTONS.length-1)%TITLE_BUTTONS.length;if(e.code==='ArrowDown'||e.code==='KeyS')titleSel=(titleSel+1)%TITLE_BUTTONS.length;}
@@ -839,6 +854,7 @@ addEventListener('touchstart',pdown,{passive:false});addEventListener('touchmove
 // Run state, kill chain, newRun, guns, wave spawning.
 let mode='boot',t=0,blink=0,shopSel=0,scroll=0,lastW=0;
 let boss=null,bossWarn=0,bossDying=0,bossCount=0;let muzz=0,shieldHit=0,floats=[],evt=0,evtText='',evtCol='#fff',rings=[],bombs=0,bombFx=0,slow=0;let ship,shots,eshots,enemies,drops,booms,score,lives,cores,wpn,shield,usedContinue,shake,flash,waveT,level,fireT,hint,kills;
+const CAMPAIGN_WAVES=25;let campaignLoop=0;
 let formationGroup=0;
 let ground=[],groundWrecks=[],groundTimer=240,groundSide=0,groundCount=0;
 function resetGround(clearWrecks=true){if(clearWrecks)groundWrecks=[];ground=[];groundTimer=240;groundSide=0;groundCount=0;}
@@ -847,11 +863,11 @@ const MAX_HULL=3;
 const CHAIN_TIME=240;let chain=0,chainT=0;
 const chainMultiplier=()=>Math.min(4,1+Math.floor(chain/3));
 function awardKill(points,x,y){chain++;chainT=CHAIN_TIME;const mult=chainMultiplier(),earned=points*mult;score+=earned;addFloat(x,y,'+'+earned+(mult>1?' x'+mult:''),C.yellow);}
-function newRun(){resetGround();formationGroup=STARTWAVE?(AUTHORED_WAVES[STARTWAVE-1]?.length||0):0;sectorPending=false;sectorBanked=0;shopFromSector=false;resetRockets();resetWorld();chain=0;chainT=0;bankedCores=0;ship={x:PX+PW/2,y:LH-60,inv:60,hull:MAX_HULL,hullDisplay:MAX_HULL};shots=[];eshots=[];enemies=[];drops=[];booms=[];
-  score=0;lives=3;cores=0;wpn=save.weapon;shield=save.shield;usedContinue=false;shake=0;flash=0;waveT=0;level=0;fireT=0;hint=240;kills=0;floats=[];rings=[];evt=0;bombs=1;bombFx=0;slow=0;lastW=0;boss=null;bossWarn=0;bossDying=0;bossCount=0;if(STARTWAVE)level=STARTWAVE;}
+function newRun(loop=0){campaignLoop=loop;const startWave=loop>0?0:Math.min(24,STARTWAVE);resetGround();formationGroup=startWave?(AUTHORED_WAVES[startWave-1]?.length||0):0;sectorPending=false;sectorBanked=0;shopFromSector=false;resetRockets();resetWorld(startWave+1);chain=0;chainT=0;bankedCores=0;ship={x:PX+PW/2,y:LH-60,inv:60,hull:MAX_HULL,hullDisplay:MAX_HULL};shots=[];eshots=[];enemies=[];drops=[];booms=[];
+  score=0;lives=3;cores=0;wpn=save.weapon;shield=save.shield;usedContinue=false;shake=0;flash=0;waveT=0;level=0;fireT=0;hint=240;kills=0;floats=[];rings=[];evt=0;bombs=1;bombFx=0;slow=0;lastW=0;boss=null;bossWarn=0;bossDying=0;bossCount=0;if(startWave)level=startWave;}
 const GUN=[{n:'PULSE',dmg:1,rate:12},{n:'TWIN',dmg:1,rate:11},{n:'TRIPLE',dmg:2,rate:10},{n:'SPREAD',dmg:2,rate:16},{n:'STORM',dmg:2,rate:18}];const MAXW=4;
 const spd=()=>3.7+save.engine*0.5;
-const R={0:17,1:20,2:23,3:30,4:20,5:20};
+const R={0:17,1:20,2:23,3:30,4:20,5:20,6:22,7:13,8:26};
 // Authored formations through the first three sectors; null entries are boss waves.
 // Entries are [enemy kind, count, horizontal fraction of the playfield].
 const AUTHORED_WAVES=[
@@ -867,15 +883,26 @@ const AUTHORED_WAVES=[
   [[4,1,0.06],[0,2,0.7],[4,1,0.94],[3,1,0.5]],
   null,
   // Spore Heart: biological attackers, building towards the final paired lurkers.
-  [[5,2,0.3],[3,1,0.5],[4,2,0.94],[3,1,0.3]],
+  [[5,2,0.3],[6,1,0.5],[4,2,0.94],[3,1,0.3]],
   [[4,2,0.06],[3,1,0.65],[5,2,0.65],[3,1,0.35]],
-  [[3,1,0.3],[5,2,0.35],[3,1,0.7],[4,2,0.94]],
-  [[4,2,0.06],[3,1,0.35],[5,2,0.65],[3,2,0.5]]
+  [[6,1,0.3],[5,2,0.35],[3,1,0.7],[4,2,0.94]],
+  [[4,2,0.06],[6,1,0.35],[5,2,0.65],[3,1,0.5]],
+  null,
+  [[7,2,0.25],[4,2,0.94],[3,1,0.5],[7,2,0.7]],
+  [[4,2,0.06],[7,2,0.65],[6,1,0.4],[3,1,0.65]],
+  [[7,3,0.3],[3,1,0.7],[4,2,0.94],[6,1,0.5]],
+  [[6,1,0.3],[7,3,0.6],[3,1,0.4],[4,2,0.06]],
+  null,
+  [[8,1,0.5],[5,2,0.3],[7,2,0.7],[6,1,0.5]],
+  [[6,1,0.25],[8,1,0.7],[3,1,0.4],[7,2,0.6]],
+  [[8,1,0.3],[7,3,0.65],[6,1,0.5],[3,1,0.7]],
+  [[5,2,0.3],[8,1,0.6],[7,3,0.5],[8,1,0.4]],
+  null
 ];
 function spawnFormationGroup(){
   const groups=AUTHORED_WAVES[level-1],[kind,count,lane]=groups[formationGroup];
   if(kind===3&&enemies.filter(e=>e.k===3).length+count>2)return;
-  formationGroup++;
+  const first=enemies.length;formationGroup++;
   for(let i=0;i<count;i++){
     const x=PX+PW*lane+(kind===2||kind===3?(i-(count-1)/2)*110:0);
     if(kind===0)enemies.push({k:0,x,y:-24-i*80,ph:i*0.6,hp:1,t:0});
@@ -883,11 +910,13 @@ function spawnFormationGroup(){
     else if(kind===2)enemies.push({k:2,x,y:-24-i*30,hp:3,t:0,ct:60+i*20});
     else if(kind===3)enemies.push({k:3,x,y:-40-i*30,hp:8,t:i*20,ct:80,ty:50+i*12,tent:[0,1,2,3].map(j=>({ph:j*1.7+i,len:26+j*4}))});
     else if(kind===5)enemies.push({k:5,x:x+i*40,y:-30-i*80,hp:4,t:0,ph:i*Math.PI});
+    else if(kind>=6)enemies.push({k:kind,x:x+i*32,y:-32-i*65,hp:kind===7?3:kind===8?10:6,t:0,ph:i*1.7,ct:120+i*30});
     else{const edge=i%2?1-lane:lane;enemies.push({k:4,x:PX+PW*edge,y:-30-i*60,hp:4,t:0,dir:edge<0.5?1:-1,lunge:0});}
   }
+  for(let i=first;i<enemies.length;i++)enemies[i].hp=Math.ceil(enemies[i].hp*(1+campaignLoop*0.25));
   waveT=formationGroup<groups.length?(level<=4?300:270):(level<=4?120:150);
 }
-function spawnWave(){level++;if(level>1)SFX.wave();if(AUTHORED_WAVES[level-1]){formationGroup=0;spawnFormationGroup();return;}waveT=90;const n=Math.min(8,3+Math.floor(level/2));
+function spawnWave(){if(level>=CAMPAIGN_WAVES)return;level++;if(level>1)SFX.wave();if(AUTHORED_WAVES[level-1]){formationGroup=0;spawnFormationGroup();return;}waveT=90;const n=Math.min(8,3+Math.floor(level/2));
   let kind=level%4===3?2:(level%3===0?1:0);
   if(level>=6&&level%3===0)kind=3;if(level>=9&&level%4===1)kind=4;if(level>=16&&level%5===1)kind=5;
   const base=level===1?PX+PW/2:PX+56+Math.random()*(PW-112);
@@ -905,13 +934,16 @@ function spawnWave(){level++;if(level>1)SFX.wave();if(AUTHORED_WAVES[level-1]){f
 'use strict';
 // Battleship, Mech and Brood Mother: update, bombs, illustrated and fallback drawing, health bar.
 // ================= BOSSES: BATTLESHIP / MECH / MOTHERSHIP =================
-function startBossWarning(){bossWarn=150;level++;eshots=[];SFX.siren(level%15===0);addFloat(LW/2,150,'',C.red);}
-function spawnBoss(){bossCount++;const mech=level%15===10,mother=level%15===0;
+const CAMPAIGN_BOSSES=['BATTLESHIP','ASSAULT MECH','SEED MATRIARCH','TENDRIL WARDEN','BROOD MOTHER'];
+const campaignBossKind=()=>Math.min(4,Math.max(0,Math.floor(level/5)-1));
+function startBossWarning(){bossWarn=150;level++;eshots=[];SFX.siren(level>=15);addFloat(LW/2,150,'',C.red);}
+function spawnBoss(){bossCount++;const kind=campaignBossKind(),mech=kind>=1&&kind<=3,mother=kind===4;
   // Each boss scales with its own appearance count (waves 5/20/35 -> 1/2/3), not with every boss fought so far:
   // the old bossCount formula made the second Battleship (532 HP) tougher than the second Mothership (480 HP).
   const nth=Math.floor((level-5)/15)+1;
-  const hpMax=mother?Math.round(300*(1+level*0.02)):mech?Math.round(260*(1+level*0.02)):Math.round((140+nth*60)*(1+level*0.02)*(nth===1?0.9:1));
-  boss={mech,mother,x:PX+PW/2,y:mother?-180:-120,ty:88,hp:hpMax,hpMax,t:0,phase:1,dir:1,fireT:90,volT:200,flash:0,
+  const baseHp=mother?Math.round(300*(1+level*0.02)):mech?Math.round(260*(1+level*0.02)):Math.round((140+nth*60)*(1+level*0.02)*(nth===1?0.9:1));
+  const hpMax=Math.round((kind===2?340:kind===3?390:baseHp)*(1+campaignLoop*0.25));
+  boss={kind,name:CAMPAIGN_BOSSES[kind],mech,mother,x:PX+PW/2,y:mother?-180:-120,ty:88,hp:hpMax,hpMax,t:0,phase:1,dir:1,fireT:90,volT:200,flash:0,
     turrets:mother?[{dx:-68,dy:76,hp:24,ct:90},{dx:68,dy:76,hp:24,ct:150}]:mech?[]:[{dx:-52,dy:26,hp:12,ct:60},{dx:52,dy:26,hp:12,ct:120},{dx:0,dy:58,hp:16,ct:180}]};
   SFX.bossTheme(true);}
 function updateBoss(){
@@ -921,13 +953,13 @@ function updateBoss(){
     if(bossDying%9===0){const ox=(Math.random()-0.5)*140,oy=(Math.random()-0.5)*110;booms.push({x:b.x+ox,y:b.y+oy,f:0,life:24,kind:Math.random()<0.5?'exp_big':'exp_small',sc:1});SFX.boom(true);shake=10;}
     b.y+=0.4;b.x+=Math.sin(b.t*0.3)*1.5;
     if(bossDying===0){booms.push({x:b.x,y:b.y,f:0,life:40,kind:'exp_boss',sc:1.4});booms.push({x:b.x,y:b.y+20,f:0,life:60,kind:'smoke',sc:2});flash=14;shake=26;slow=30;
-      score+=2000+bossCount*500;addFloat(b.x,b.y-40,'+'+(2000+bossCount*500),C.G,true);pickupEvent(b.mother?'BROOD MOTHER DEFEATED':b.mech?'MECH DESTROYED':'BATTLESHIP DESTROYED',C.G);
+      score+=2000+bossCount*500;addFloat(b.x,b.y-40,'+'+(2000+bossCount*500),C.G,true);pickupEvent(b.name+' DEFEATED',C.G);
       lastW=kills;drops.push({x:b.x-40,y:b.y,k:'w'});drops.push({x:b.x,y:b.y,k:'s'});drops.push({x:b.x+40,y:b.y,k:'b'});for(let i=0;i<6;i++)drops.push({x:b.x-60+i*24,y:b.y+30,k:'core'});
       boss=null;waveT=200;sectorPending=true;enemies=[];eshots=[];shots=[];resetRockets();SFX.bossTheme(false);}
     return;}
   // entry
   if(b.y<b.ty){b.y+=0.9;return;}
-  if(b.mother)updateMothership(b);else if(b.mech)updateMech(b);else{
+  if(b.kind===2||b.kind===3)updateCampaignBoss(b);else if(b.mother)updateMothership(b);else if(b.mech)updateMech(b);else{
   // sway
   b.x+=b.dir*(b.phase===2?0.9:0.55);if(b.x<PX+110){b.dir=1;}if(b.x>PX+PW-110){b.dir=-1;}
   // Give the first Battleship more dodge time between aimed shots.
@@ -947,7 +979,7 @@ function updateBoss(){
     for(const tu of b.turrets){if(tu.hp>0&&Math.abs(s.x-(b.x+tu.dx))<14&&Math.abs(s.y-(b.y+tu.dy))<14){tu.hp-=(s.dmg||1);hit=true;booms.push({x:s.x,y:s.y,f:0,life:8,kind:'hit',sc:1});if(tu.hp<=0){boom(b.x+tu.dx,b.y+tu.dy,false);awardKill(150,b.x+tu.dx,b.y+tu.dy);}break;}}
     if(!hit&&(b.mother?((Math.abs(s.x-b.x)<32&&Math.abs(s.y-b.y)<142)||(Math.abs(s.x-b.x)<96&&Math.abs(s.y-b.y)<62)):(Math.abs(s.x-b.x)<(b.mech?54:80)&&Math.abs(s.y-b.y)<(b.mech?36:60)))){b.hp-=(s.dmg||1);b.flash=3;hit=true;booms.push({x:s.x,y:s.y,f:0,life:8,kind:'hit',sc:1});SFX.hit();}
     if(hit)s.y=-99;}
-  if(b.phase===1&&b.hp<b.hpMax*0.5){b.phase=2;pickupEvent(b.mother?'CARRIER OVERDRIVE':b.mech?'MECH OVERDRIVE':'HULL BREACH',C.red);shake=10;flash=6;}
+  if(b.phase===1&&b.hp<b.hpMax*0.5){b.phase=2;pickupEvent(b.kind>=2?'BROOD FRENZY':b.mech?'MECH OVERDRIVE':'HULL BREACH',C.red);shake=10;flash=6;}
   if(b.hp<=0){bossDying=110;eshots=[];SFX.bossTheme(false);}
 }
 function updateMech(b){
@@ -1080,12 +1112,12 @@ function drawMothershipBay(b,bay){
   ctx.restore();
 }
 function drawBoss(){
-  if(bossWarn>0){glassPanel(PX+40,12,PW-80,32,'#ee9871');txt('INCOMING / '+(level%15===0?'BROOD MOTHER':level%15===10?'ASSAULT MECH':'BATTLESHIP'),LW/2,20,'#ffd3ad',13,'center');}
+  if(bossWarn>0){glassPanel(PX+40,12,PW-80,32,'#ee9871');txt('INCOMING / '+CAMPAIGN_BOSSES[campaignBossKind()],LW/2,20,'#ffd3ad',13,'center');}
   if(!boss)return;const b=boss;
   const illustrated=!b.mother&&!b.mech&&IMG.battleship_hull;
-  const mechArt=b.mech&&IMG.mech_body;
+  const mechArt=b.kind===1&&IMG.mech_body;
   const motherArt=b.mother&&IMG.mothership_body;
-  const im=b.mother?IMG.boss_mothership:b.mech?((b.fireFlash>0?IMG.boss_mech_fire:IMG.boss_mech)||IMG.boss_mech||IMG.boss_mech_fire):IMG.boss_battleship;if(motherArt){drawMothershipArt(b);}else if(mechArt){drawMechArt(b);}else if(illustrated){drawBattleshipHull(b);}else if(im){ctx.drawImage(im,X(b.x)-im.width/2,X(b.y)-im.height/2);}
+  const im=b.mother?IMG.boss_mothership:b.mech?((b.fireFlash>0?IMG.boss_mech_fire:IMG.boss_mech)||IMG.boss_mech||IMG.boss_mech_fire):IMG.boss_battleship;if(b.kind===2||b.kind===3){drawCampaignBoss(b);}else if(motherArt){drawMothershipArt(b);}else if(mechArt){drawMechArt(b);}else if(illustrated){drawBattleshipHull(b);}else if(im){ctx.drawImage(im,X(b.x)-im.width/2,X(b.y)-im.height/2);}
   else if(b.mother){drawMothershipFallback(b);}
   else if(b.mech){drawMechFallback(b);}
   else{ctx.fillStyle='#a03030';ctx.fillRect(X(b.x)-140,X(b.y)-100,280,200);}
@@ -1099,7 +1131,7 @@ function drawBoss(){
     if(b.volT<=30){const r=5+b.volT/3;ctx.strokeStyle=C.cyan;ctx.lineWidth=X(1);ctx.beginPath();ctx.arc(X(b.x),X(b.y+70),X(r),0,Math.PI*2);ctx.stroke();}
     if(b.phase===2){const sx=PX+((Math.floor(b.t/16)+1)*38)%PW;const sy=b.y+40;ctx.fillStyle=C.yellow;ctx.beginPath();ctx.moveTo(X(sx-5),X(sy-12));ctx.lineTo(X(sx+5),X(sy-12));ctx.lineTo(X(sx),X(sy-5));ctx.closePath();ctx.fill();}
     ctx.restore();}
-  if(b.mech&&!bossDying&&b.y>=b.ty&&b.fireT<=45&&b.aimX!==undefined){ctx.save();
+  if(b.kind===1&&!bossDying&&b.y>=b.ty&&b.fireT<=45&&b.aimX!==undefined){ctx.save();
     ctx.strokeStyle=C.yellow;ctx.lineWidth=X(1);ctx.setLineDash([X(3),X(4)]);ctx.beginPath();
     for(const dx of [-40,40]){ctx.moveTo(X(b.x+dx),X(b.y+18));ctx.lineTo(X(b.aimX),X(b.aimY));}ctx.stroke();ctx.setLineDash([]);
     ctx.strokeRect(X(b.aimX-10),X(b.aimY-10),X(20),X(20));ctx.restore();}
@@ -1107,7 +1139,7 @@ function drawBoss(){
     if(b.y>=b.ty&&b.volT<=45&&b.gap!==undefined){const spacing=(PW-64)/7;ctx.save();ctx.strokeStyle=C.cyan;ctx.lineWidth=X(2);
       ctx.strokeRect(X(PX+32+(b.gap-0.35)*spacing),X(b.y+139),X(spacing*1.7),X(12));txt('GAP',PX+32+(b.gap+0.5)*spacing,b.y+141,C.white,10,'center');ctx.restore();}}
   // health bar
-  const bw=PW-40;glassPanel(PX+20,6,bw,20,'#b88364');const f=Math.max(0,Math.min(1,b.hp/b.hpMax));txt(b.mother?'BROOD MOTHER':b.mech?'ASSAULT MECH':'BATTLESHIP',PX+28,9,'#e6c6b0',9);ctx.fillStyle='#293642';ctx.fillRect(X(PX+145),X(12),X(bw-135),X(5));ctx.fillStyle=b.phase===2?'#ed7f86':'#eeb275';ctx.fillRect(X(PX+145),X(12),X((bw-135)*f),X(5));
+  const bw=PW-40;glassPanel(PX+20,6,bw,20,'#b88364');const f=Math.max(0,Math.min(1,b.hp/b.hpMax));txt(b.name,PX+28,9,'#e6c6b0',9);ctx.fillStyle='#293642';ctx.fillRect(X(PX+145),X(12),X(bw-135),X(5));ctx.fillStyle=b.phase===2?'#ed7f86':'#eeb275';ctx.fillRect(X(PX+145),X(12),X((bw-135)*f),X(5));
 }
 function drawMechFallback(b){
   // Keep the Mech legible when both sprites fail to load.
@@ -1120,6 +1152,23 @@ function drawMothershipFallback(b){
   bevel(b.x-28,b.y-142,56,284,false);bevel(b.x-96,b.y-92,32,208,false);bevel(b.x+64,b.y-92,32,208,false);
   for(const dy of [-54,16,76])bevel(b.x-80,b.y+dy,160,16,false);
   ctx.fillStyle=C.orange;ctx.fillRect(X(b.x-8),X(b.y-100),X(16),X(180));
+}
+
+function updateCampaignBoss(b){
+  b.x=LW/2+Math.sin(b.t*0.012)*(b.kind===2?65:110);b.fireT--;
+  if(b.fireT===45){b.aimX=ship.x;b.aimY=ship.y;}
+  if(b.fireT<=0){
+    if(b.kind===2){const a=Math.atan2(b.aimY-b.y,b.aimX-b.x);for(let j=-2;j<=2;j++)eshots.push({x:b.x,y:b.y+26,vx:Math.cos(a+j*0.25)*1.7,vy:Math.sin(a+j*0.25)*1.7,ground:true,bio:true});
+      if(enemies.length<4)enemies.push({k:5,x:b.x,y:b.y+38,hp:Math.ceil(4*(1+campaignLoop*0.25)),t:0,ph:0});
+    }else{const gap=(b.salvo||0)%3;for(let lane=0;lane<3;lane++){if(lane===gap)continue;for(let j=0;j<2;j++)eshots.push({x:PX+PW*(lane+0.35+j*0.3)/3,y:b.y+30,vx:0,vy:2,ground:true,bio:true});}b.salvo=(b.salvo||0)+1;}
+    b.fireT=b.phase===2?130:180;SFX.plasma();
+  }
+}
+function drawCampaignBoss(b){ctx.save();ctx.translate(X(b.x),X(b.y));
+  if(b.kind===3){for(const side of [-1,1])for(let j=0;j<3;j++){ctx.strokeStyle='#70556d';ctx.lineWidth=X(5-j);ctx.beginPath();ctx.moveTo(X(side*25),X(j*8-12));ctx.quadraticCurveTo(X(side*(40+j*6)),X(5+Math.sin(b.t*0.06+j)*8),X(side*48),X(26-j*8));ctx.stroke();}}
+  if(b.kind===3){ctx.fillStyle='#776477';ctx.beginPath();ctx.moveTo(X(-48),X(-9));ctx.lineTo(X(-25),X(-27));ctx.lineTo(0,X(-15));ctx.lineTo(X(25),X(-27));ctx.lineTo(X(48),X(-9));ctx.lineTo(X(18),X(27));ctx.lineTo(0,X(16));ctx.lineTo(X(-18),X(27));ctx.closePath();ctx.fill();ctx.fillStyle='#342535';ctx.fillRect(X(-14),X(-12),X(28),X(28));ctx.fillStyle=b.fireT<=45?'#ffcd86':'#b18484';ctx.beginPath();ctx.ellipse(0,X(3),X(8),X(13),0,0,Math.PI*2);ctx.fill();}
+  else for(let j=-1;j<=1;j++){ctx.fillStyle='#706247';ctx.beginPath();ctx.ellipse(X(j*25),0,X(22),X(28),j*0.3,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#201724';ctx.lineWidth=X(2);ctx.stroke();ctx.fillStyle=b.fireT<=45?'#ffcd86':'#af7650';ctx.beginPath();ctx.ellipse(X(j*25),X(9),X(7),X(10),0,0,Math.PI*2);ctx.fill();}
+  ctx.restore();if(b.fireT<=45&&!bossDying){const msg=b.kind===2?'SEED VOLLEY / KEEP MOVING':['LEFT LANE SAFE','CENTRE LANE SAFE','RIGHT LANE SAFE'][(b.salvo||0)%3];txt(msg,LW/2,36,'#edb985',10,'center');}
 }
 </script>
 <script>
@@ -1174,6 +1223,11 @@ function update(){t++;scroll=(scroll+1.8)%TH;
   for(const e of enemies){e.t++;
     if(e.k===0){e.y+=1.1+level*0.04;e.x+=Math.sin(e.t*0.05+e.ph)*1.8;}
     if(e.k===1){e.y+=2.8+level*0.06;}
+    if(e.k>=6){
+      if(e.k===7){e.y+=2.6;e.x=Math.max(PX+20,Math.min(PX+PW-20,e.x+Math.sin(e.t*0.08+e.ph)*2));}
+      else{e.y+=e.k===8?0.65:0.9;e.x+=Math.sin(e.t*0.035+e.ph)*0.45;}
+      if(e.y>20&&e.y<LH-100&&--e.ct<=0){const a=Math.atan2(ship.y-e.y,ship.x-e.x),fan=e.k===8?[-0.45,0,0.45]:e.k===6?[-0.18,0.18]:[0];for(const d of fan)eshots.push({x:e.x,y:e.y+12,vx:Math.cos(a+d)*1.8,vy:Math.sin(a+d)*1.8,ground:true,bio:true});e.ct=e.k===8?210:e.k===6?180:999;SFX.plasma();}
+    }
     if(e.k===5){e.y+=1.6;e.x=Math.max(PX+24,Math.min(PX+PW-24,e.x+Math.sin(e.t*0.055+e.ph)*1.6));}
     if(e.k===3){if(e.y<e.ty)e.y+=0.8;else e.x+=Math.sin(e.t*0.02)*1.2;e.ct--;
       if(e.ct<=0&&e.y>0){e.ct=110;for(let j=-1;j<=1;j++){const a=Math.atan2(ship.y-e.y,ship.x-e.x)+j*0.35;eshots.push({x:e.x,y:e.y+20,vx:Math.cos(a)*2.2,vy:Math.sin(a)*2.2,blue:true});}SFX.plasma();}
@@ -1184,8 +1238,8 @@ function update(){t++;scroll=(scroll+1.8)%TH;
     if(Math.abs(e.x-ship.x)<R[e.k]+6&&Math.abs(e.y-ship.y)<R[e.k]+10){e.hp=0;boom(e.x,e.y,false);hitShip();}}
   // One hit per shot per tick; spent shots (y=-99) must not test enemies still queued above the screen.
   for(const s of shots){if(s.y<-50)continue;for(const e of enemies){if(e.hp>0&&Math.abs(s.x-e.x)<R[e.k]&&Math.abs(s.y-e.y)<R[e.k]){e.hp-=(s.dmg||1);e.flash=4;if(e.hp>0){SFX.hit();booms.push({x:s.x,y:s.y-4,f:0,life:8,kind:'hit',sc:1});}s.y=-99;
-      if(e.hp<=0){awardKill([10,20,50,150,60,60][e.k],e.x,e.y);boom(e.x,e.y,e.k>=2);const k=dropFor(e);if(k)drops.push({x:e.x,y:e.y,k});}break;}}}
-  for(const s of shots){if(s.y<-50)continue;for(const e of ground)if(e.hp>0&&Math.abs(s.x-e.x)<21&&Math.abs(s.y-e.y)<21){e.hp-=s.dmg||1;s.y=-99;e.flash=5;if(e.hp<=0)destroyGround(e);else SFX.hit();break;}}
+      if(e.hp<=0){awardKill([10,20,50,150,60,60,80,50,120][e.k],e.x,e.y);boom(e.x,e.y,e.k>=2);const k=dropFor(e);if(k)drops.push({x:e.x,y:e.y,k});}break;}}}
+  for(const s of shots){if(s.y<-50)continue;for(const e of ground)if(e.hp>0&&e.y>0&&Math.abs(s.x-e.x)<21&&Math.abs(s.y-e.y)<21){e.hp-=s.dmg||1;s.y=-99;e.flash=5;if(e.hp<=0)destroyGround(e);else SFX.hit();break;}}
   ground=ground.filter(e=>e.hp>0);
   enemies=enemies.filter(e=>e.hp>0&&e.y<LH+30);if(enemies.some(e=>e.k===3)&&enemies.length>12)enemies=enemies.filter(e=>e.k!==0||e.y>-100);
   for(const s of eshots){s.x+=s.vx;s.y+=s.vy;if(Math.abs(s.x-ship.x)<16&&Math.abs(s.y-ship.y)<20){s.y=999;hitShip();}}
@@ -1205,13 +1259,15 @@ function update(){t++;scroll=(scroll+1.8)%TH;
 // Ground units share the scenery's pixel scroll, and never gate aerial wave progression.
 function updateGround(){
   for(const w of groundWrecks){w.y=(worldScroll-w.anchor)/K;w.heat=Math.max(0,w.heat-1);}groundWrecks=groundWrecks.filter(w=>w.y<LH+40);
-  if(boss||bossWarn||bossDying||sectorPending){resetGround(false);return;}
+  // Bosses and the sector sweep suppress new sentries and silence the live ones; existing units keep scrolling
+  // off with the scenery instead of vanishing mid-screen. The timer is held so the first post-boss spawn waits 240 ticks.
+  const suppress=boss||bossWarn||bossDying||sectorPending;if(suppress)groundTimer=Math.max(groundTimer,240);
   if(level<1)return;
   const progress=Math.min(3,(level-1)%5),cap=progress===3?6:5;
-  if(--groundTimer<=0&&ground.length<cap){const n=groundCount++,variant=n%3===2?2:Math.floor(n/3)%2,edge=variant?72:45,x=variant===2?PX+PW/2:(groundSide?PX+PW-edge:PX+edge);if(variant!==2)groundSide=1-groundSide;
-    ground.push({x,y:-28,anchor:worldScroll+56,stage:worldStage,variant,hp:4,ct:150,aim:Math.PI/2,flash:0});groundTimer=210-progress*30;}
+  if(!suppress&&--groundTimer<=0&&ground.length<cap){const n=groundCount++,variant=n%3===2?2:Math.floor(n/3)%2,edge=variant?72:45,x=variant===2?PX+PW/2:(groundSide?PX+PW-edge:PX+edge);if(variant!==2)groundSide=1-groundSide;
+    ground.push({x,y:-28,anchor:worldScroll+56,stage:Math.min(2,worldStage),variant,hp:Math.ceil(4*(1+campaignLoop*0.25)),ct:150,aim:Math.PI/2,flash:0});groundTimer=210-progress*30;}
   for(const e of ground){e.y=(worldScroll-e.anchor)/K;if(e.flash>0)e.flash--;
-    if(e.y<24||e.y>LH-90)continue;
+    if(suppress||e.y<24||e.y>LH-90)continue;
     e.ct--;
     if(e.ct===45)e.aim=Math.atan2(ship.y-e.y,ship.x-e.x);
     if(e.ct<=0){if(Math.hypot(ship.x-e.x,ship.y-e.y)>90){for(const spread of (e.variant===1?[-0.12,0.12]:[0])){const a=e.aim+spread,side=spread?Math.sign(spread)*7:0;eshots.push({x:e.x+Math.cos(e.aim)*18-Math.sin(e.aim)*side,y:e.y+Math.sin(e.aim)*18+Math.cos(e.aim)*side,vx:Math.cos(a)*1.7,vy:Math.sin(a)*1.7,ground:true,bio:e.stage>0});}SFX.plasma();}e.ct=e.variant?300:240;}
@@ -1219,9 +1275,10 @@ function updateGround(){
   ground=ground.filter(e=>e.y<LH+35&&e.hp>0);
 }
 function destroyGround(e){if(e.destroyed)return;e.destroyed=true;
-  awardKill(40,e.x,e.y);boom(e.x,e.y,true);drops.push({x:e.x,y:e.y,k:'core'});
+  awardKill(40,e.x,e.y);boom(e.x,e.y,true);if(Math.random()<0.5)drops.push({x:e.x,y:e.y,k:'core'}); // 50%: a guaranteed core tripled first-sector income
   groundWrecks.push({x:e.x,y:e.y,anchor:e.anchor,stage:e.stage,variant:e.variant,heat:90});if(groundWrecks.length>20)groundWrecks.shift();
 }
+const GROUND_FALLBACK_GRADIENT=[null,null]; // radial gradients are in user space, so one per variant serves every unit
 function drawGround(){
   for(const w of groundWrecks){ctx.save();ctx.translate(X(w.x),X(w.y));
     const r=w.variant===2?29:23;ctx.fillStyle='rgba(5,8,12,0.65)';ctx.beginPath();ctx.ellipse(0,X(3),X(r),X(r*0.7),0,0,Math.PI*2);ctx.fill();
@@ -1239,7 +1296,7 @@ function drawGround(){
     ctx.fillStyle='rgba(0,0,0,0.38)';ctx.beginPath();ctx.ellipse(X(3),X(7),X(26),X(18),0,0,Math.PI*2);ctx.fill();
     if(IMG.ground_sentries){const im=IMG.ground_sentries,w=im.width/3;ctx.imageSmoothingEnabled=true;ctx.drawImage(im,e.stage*w,0,w,im.height,X(-26),X(-26),X(52),X(52));}
     else{const bio=e.stage>0;ctx.lineCap='round';for(const side of [-1,1])for(const y of [-12,12]){ctx.strokeStyle=bio?'#715365':'#69747a';ctx.lineWidth=X(4);ctx.beginPath();ctx.moveTo(X(side*8),X(y*0.5));ctx.lineTo(X(side*22),X(y));ctx.lineTo(X(side*24),X(y+7));ctx.stroke();}
-      const g=ctx.createRadialGradient(X(-5),X(-6),X(2),0,0,X(21));g.addColorStop(0,bio?'#a07583':'#a5a38e');g.addColorStop(1,bio?'#362236':'#27323a');ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(0,0,X(17),X(20),0,0,Math.PI*2);ctx.fill();}
+      let g=GROUND_FALLBACK_GRADIENT[bio?1:0];if(!g){g=ctx.createRadialGradient(X(-5),X(-6),X(2),0,0,X(21));g.addColorStop(0,bio?'#a07583':'#a5a38e');g.addColorStop(1,bio?'#362236':'#27323a');GROUND_FALLBACK_GRADIENT[bio?1:0]=g;}ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(0,0,X(17),X(20),0,0,Math.PI*2);ctx.fill();}
     const charging=e.ct<=45&&e.y>=24&&e.y<=LH-90;
     ctx.rotate(e.aim-Math.PI/2);
     for(const offset of (e.variant?[-7,7]:[0])){ctx.fillStyle=e.stage?'#382433':'#1a252e';
@@ -1286,18 +1343,6 @@ function drawLurkerArt(e){
 }
 
 
-function drawLurker(e){const cx=X(e.x),cy=X(e.y);
-  // tentacles: chains of shrinking segments ending in a hook
-  for(const tn of e.tent){let px=cx,py=cy+24;const sw=Math.sin(e.t*0.05+tn.ph);
-    for(let i=0;i<8;i++){const f=i/8;px+=sw*tn.len*0.22*(1-f*0.3);py+=tn.len*0.3;const r=Math.max(2,6-i*0.6);seg(px,py,r,i%2?'#7a2c8a':'#a040b0','#3a0c48');}
-    // hook
-    ctx.fillStyle=C.s5;ctx.fillRect(Math.round(px-2),Math.round(py),4,10);ctx.fillRect(Math.round(px-2+sw*6),Math.round(py+8),Math.abs(Math.round(sw*6))+4,4);}
-  // dome body with eye cluster
-  ctx.fillStyle='#3a0c48';ctx.beginPath();ctx.ellipse(cx,cy,46,30,0,0,6.283);ctx.fill();
-  ctx.fillStyle='#7a2c8a';ctx.beginPath();ctx.ellipse(cx,cy-3,40,24,0,0,6.283);ctx.fill();
-  ctx.fillStyle='#c060d0';ctx.beginPath();ctx.ellipse(cx-8,cy-12,22,10,0,0,6.283);ctx.fill();
-  for(let i=-1;i<=1;i++){seg(cx+i*16,cy+2,5,e.ct<25?C.magenta:'#101018','#e0e0ff');seg(cx+i*16,cy+2,2,C.white,C.white);}
-  for(let i=0;i<7;i++){ctx.fillStyle='#3a0c48';ctx.fillRect(cx-42+i*14,cy+20,6,8);}}
 // Spore skimmer banks gently with its weaving descent.
 function drawSporeSkimmer(e){
   ctx.save();ctx.translate(X(e.x),X(e.y));ctx.rotate(Math.sin(e.t*0.055+e.ph)*0.12);ctx.imageSmoothingEnabled=true;
@@ -1402,8 +1447,9 @@ function drawField(){ctx.save();ctx.beginPath();ctx.rect(X(PX),0,X(PW),H);ctx.cl
     else if(e.k===2){if(!img('frigate',e.x,e.y))blit(E3,e.x,e.y,1.5);if(e.ct<30&&Math.floor(e.ct/4)%2===0){ctx.fillStyle=C.magenta;ctx.fillRect(X(e.x)-9,X(e.y)+8,18,6);}}
     else if(e.k===3){drawLurkerArt(e);}
     else if(e.k===5){drawSporeSkimmer(e);}
+    else if(e.k>=6){drawCampaignCreature(e);}
     else if(e.k===4&&IMG.crawler_body){drawCrawlerArt(e);}
-    else{const sc=K/1.5,cx=X(e.x),cy=X(e.y);ctx.save();ctx.translate(cx*(1-sc),cy*(1-sc));ctx.scale(sc,sc);if(e.k===3)drawLurker(e);else drawCrawler(e);ctx.restore();}
+    else{const sc=K/1.5,cx=X(e.x),cy=X(e.y);ctx.save();ctx.translate(cx*(1-sc),cy*(1-sc));ctx.scale(sc,sc);drawCrawler(e);ctx.restore();}
     if(e.flash>0){ctx.globalCompositeOperation='lighter';ctx.globalAlpha=0.5;ctx.fillStyle=C.white;ctx.fillRect(X(e.x)-X(R[e.k]),X(e.y)-X(R[e.k]),X(R[e.k]*2),X(R[e.k]*2));ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';}
   }
   drawBoss();
@@ -1415,6 +1461,13 @@ function drawField(){ctx.save();ctx.beginPath();ctx.rect(X(PX),0,X(PW),H);ctx.cl
   for(const f of floats){ctx.globalAlpha=Math.min(1,f.life/20);txt(f.txt,f.x+1,f.y+1,C.s0,f.big?22:13,'center');txt(f.txt,f.x,f.y,f.col,f.big?22:13,'center');}ctx.globalAlpha=1;
   if(bombFx>0){ctx.globalAlpha=bombFx/40*0.6;ctx.fillStyle=C.G;ctx.fillRect(X(PX),0,X(PW),H);ctx.globalAlpha=1;}
   drawShip();ctx.restore();}
+
+// Gameplay silhouettes for the campaign pass; final painted designs follow the visual review.
+function drawCampaignCreature(e){ctx.save();ctx.translate(X(e.x),X(e.y));const needle=e.k===7,colony=e.k===8;
+  const pulse=1+Math.sin(e.t*0.07)*0.04;ctx.scale(pulse,pulse);
+  if(needle){for(let i=4;i>=0;i--){ctx.fillStyle=i%2?'#6f4865':'#aa8297';ctx.beginPath();ctx.ellipse(X(Math.sin(e.t*0.09-i)*3),X(i*5-12),X(7-i),X(5),0,0,Math.PI*2);ctx.fill();}}
+  else{for(let i=0;i<(colony?5:3);i++){const a=i*2.4,x=Math.cos(a)*(colony?14:8),y=Math.sin(a)*12;ctx.fillStyle=colony?'#744553':'#68664b';ctx.beginPath();ctx.ellipse(X(x),X(y),X(13),X(16),a,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#2a1a29';ctx.lineWidth=X(2);ctx.stroke();}}
+  ctx.fillStyle=e.ct<45?'#ffd09a':'#c78b59';ctx.beginPath();ctx.ellipse(0,X(7),X(needle?3:6),X(5),0,0,Math.PI*2);ctx.fill();ctx.restore();}
 </script>
 <script>
 'use strict';
@@ -1430,7 +1483,7 @@ function drawPanels(){
   box(12,12,PX-24,44,'SCORE',String(score).padStart(6,'0'),C.yellow);
   box(12,64,PX-24,44,'BEST',String(Math.max(score,save.best)).padStart(6,'0'),C.text);
   box(12,116,PX-24,44,'LIVES');for(let i=0;i<lives;i++)ctx.drawImage(IMG.player||SHIP,X(20+i*22),X(139),24,22);
-  box(12,168,PX-24,44,'WAVE',boss||bossWarn?'BOSS':String(level),boss||bossWarn?C.red:C.text);
+  box(12,168,PX-24,44,'LEVEL',Math.max(1,Math.ceil(level/5))+'/5',C.text);txt(boss||bossWarn?'BOSS':'WAVE '+Math.max(1,level),20,203,boss||bossWarn?C.red:'#91a7b5',7);
   box(12,220,PX-24,56,'CHAIN','x'+chainMultiplier(),chainT>0?C.yellow:C.dim);
   ctx.fillStyle=C.s1;ctx.fillRect(X(20),X(264),X(PX-40),X(4));ctx.fillStyle=C.yellow;ctx.fillRect(X(20),X(264),X((PX-40)*chainT/CHAIN_TIME),X(4));
   box(12,284,PX-24,64,'HULL');
@@ -1481,12 +1534,12 @@ function pauseTap(p){
   if(p.y>=y&&p.y<=y+30)setPaused(false);
   else if(p.y>=y+44&&p.y<=y+74){if(exitConfirm)quitRun();else{exitConfirm=true;exitChoice=0;exitWait=15;}}
 }
-const TITLE_BUTTONS=[{x:40,y:178,w:230,h:38},{x:40,y:224,w:230,h:32},{x:40,y:262,w:334,h:24},{x:40,y:290,w:334,h:24}];
+const TITLE_BUTTONS=[{x:40,y:178,w:230,h:38},{x:40,y:224,w:230,h:32},{x:40,y:262,w:300,h:24},{x:40,y:290,w:300,h:24}]; // audio rows end at x=340 so they clear the hangar art
 function titleAudioAction(i,x){const k=i===2?'sound':'music';
   if(x===undefined||x<164){if(i===2)SFX.toggleMute();else SFX.toggleMusic();}
   else if(x<188){SFX.setVolume(k,SFX.getVolume(k)-0.1);SFX.preview(k);}
-  else if(x<284){SFX.setVolume(k,(x-188)/96);SFX.preview(k);}
-  else if(x<308){SFX.setVolume(k,SFX.getVolume(k)+0.1);SFX.preview(k);}
+  else if(x<260){SFX.setVolume(k,(x-188)/72);SFX.preview(k);}
+  else if(x<282){SFX.setVolume(k,SFX.getVolume(k)+0.1);SFX.preview(k);}
   else SFX.preview(k);
 }
 // Translucent surfaces keep the scene visible; text remains fully opaque.
@@ -1517,8 +1570,8 @@ function titleScreen(){
     if(hot){ctx.fillStyle='rgba(39,160,190,0.12)';ctx.fillRect(X(b.x+2),X(b.y+1),X(b.w-3),X(b.h-2));}
     txt(labels[i],b.x+20,b.y+(i===0?10:i>1?5:8),hot?'#a3f2ff':'#adc0cd',i===0?19:13);
     if(hot)txt('>',b.x+7,b.y+(i===0?12:i>1?5:8),'#56dcf1',13);
-    if(i>1){const k=i===2?'sound':'music',v=SFX.getVolume(k);txt('-',174,b.y+6,'#a3f2ff',13,'center');txt('+',296,b.y+6,'#a3f2ff',13,'center');
-      ctx.fillStyle='#223543';ctx.fillRect(X(188),X(b.y+6),X(96),X(12));ctx.fillStyle='#426f7b';ctx.fillRect(X(188),X(b.y+6),X(96*v),X(12));txt(Math.round(v*100)+'%',236,b.y+8,'#eefbff',8,'center');txt('TEST',340,b.y+7,'#a3f2ff',9,'center');
+    if(i>1){const k=i===2?'sound':'music',v=SFX.getVolume(k);txt('-',174,b.y+6,'#a3f2ff',13,'center');txt('+',270,b.y+6,'#a3f2ff',13,'center');
+      ctx.fillStyle='#223543';ctx.fillRect(X(188),X(b.y+6),X(72),X(12));ctx.fillStyle='#426f7b';ctx.fillRect(X(188),X(b.y+6),X(72*v),X(12));txt(Math.round(v*100)+'%',224,b.y+8,'#eefbff',8,'center');txt('TEST',312,b.y+7,'#a3f2ff',9,'center');
     }
     if(!TOUCH&&i<2)txt(i===0?'ENTER':i===1?'Q':i===2?'M':'N',b.x+b.w-10,b.y+(i>1?7:12),'#7e9aa9',9,'right');
   });
@@ -1569,13 +1622,13 @@ function drawVictorySweep(){
 }
 function completeSector(){
   if(!sectorPending)return;
-  resetGround();
+  resetGround(); // wrecks too: travel resets worldScroll to 0, which would strand anchored wrecks far above the screen
   sectorBanked=cores-bankedCores;save.cores+=sectorBanked;bankedCores=cores;
-  if(score>save.best)save.best=score;persist();sectorPending=false;mode='sector';sectorSel=0;t=0;setPaused(false);shots=[];eshots=[];resetRockets();
+  if(score>save.best)save.best=score;persist();sectorPending=false;mode=level>=CAMPAIGN_WAVES?'victory':'sector';sectorSel=0;t=0;setPaused(false);shots=[];eshots=[];resetRockets();
 }
 let travelOrigin={x:0,y:0};
 function nextSector(){
-  if(mode!=='sector')return;
+  if(mode!=='sector'||level>=CAMPAIGN_WAVES)return;
   travelOrigin={x:ship.x,y:ship.y};shopFromSector=false;mode='travel';t=0;setPaused(false);
   shots=[];eshots=[];booms=[];floats=[];rings=[];evt=0;flash=0;shake=0;slow=0;muzz=0;
 }
@@ -1597,22 +1650,27 @@ function sectorTravelScreen(){
     txt(world.detail,LW/2,157,world.accent,10,'center');ctx.restore();}
 }
 function leaveShop(){if(shopFromSector){mode='sector';t=60;tapped=false;}else{clearScene();mode='title';t=0;}}
+function chooseSector(i){
+  if(mode==='victory'){if(i===0){newRun(campaignLoop+1);mode='play';t=0;setPaused(false);}else{clearScene();mode='title';t=0;}tapped=false;ptr.down=false;return;}
+  if(i===0){shopFromSector=true;mode='shop';t=0;}else nextSector();
+}
 function sectorScreen(){
+  const won=mode==='victory';
   playScene();ctx.save();const reveal=Math.min(1,t/30);ctx.globalAlpha=reveal;
   ctx.fillStyle='rgba(5,10,18,0.66)';ctx.fillRect(X(PX),0,X(PW),H);
   glassPanel(PX+14,24,PW-28,310,'#d6b36c');
-  txt('SECTOR SECURED',LW/2,42,'#d6b36c',11,'center');
-  txt('LEVEL '+Math.floor(level/5)+' COMPLETE',LW/2,65,'#f0d59c',26,'center');
-  txt('Take a breath. The next world can wait.',LW/2,105,'#a4b8c6',10,'center');
+  txt(won?'THE BROOD HAS FALLEN':'SECTOR SECURED',LW/2,42,'#d6b36c',11,'center');
+  txt(won?'CAMPAIGN COMPLETE':'LEVEL '+Math.floor(level/5)+' COMPLETE',LW/2,65,'#f0d59c',26,'center');
+  txt(won?'Five worlds cleared. The colony is safe.':'Take a breath. The next world can wait.',LW/2,105,'#a4b8c6',10,'center');
   txt('+'+Math.floor(sectorBanked*Math.min(1,t/60))+' cores banked',LW/2,133,C.cyan,14,'center');
   txt(save.cores+' cores available for upgrades',LW/2,154,'#a4b8c6',12,'center');
   ctx.globalAlpha=reveal*(t<60?0.35:1);
-  for(const [i,label] of ['UPGRADE / WORKSHOP','PROCEED'].entries()){
+  for(const [i,label] of (won?['HARDER REPLAY','MAIN MENU']:['UPGRADE / WORKSHOP','PROCEED']).entries()){
     menuChoice(label,LW/2-130,184+i*44,260,32,i===sectorSel,13);}
   ctx.globalAlpha=reveal;
-  txt('NEXT: '+WORLDS[worldForWave(level+1)].name,LW/2,277,'#d6b36c',10,'center');
+  txt(won?'FINAL SCORE: '+score:'NEXT: '+WORLDS[worldForWave(level+1)].name,LW/2,277,'#d6b36c',10,'center');
   if(t<60)txt(TOUCH?'Tap to finish tally':'ENTER to finish tally',LW/2,307,'#a4b8c6',9,'center');
-  else txt(TOUCH?'Choose when you are ready':'UP/DOWN choose / ENTER select / Q Workshop',LW/2,307,'#a4b8c6',9,'center');
+  else txt(TOUCH?'Choose when you are ready':won?'UP/DOWN choose / ENTER select':'UP/DOWN choose / ENTER select / Q Workshop',LW/2,307,'#a4b8c6',9,'center');
   ctx.restore();
 }
 
@@ -1671,10 +1729,11 @@ function stepLogic(){if(!paused)ship.hullDisplay+=Math.max(-0.08,Math.min(0.08,s
   else if(mode==='play'){if(!paused){if(slow>0){slow--;if(blink%2===0)update();}else update();}}
   else if(mode==='travel'){if(!paused)updateSectorTravel();}
   else if(mode==='dead'){if(tapped){if(tapSrc==='key')chooseDead(deadSel);else if(ptr.x>=LW/2-130&&ptr.x<=LW/2+130){const i=Math.floor((ptr.y-176)/23);if(i>=0&&i<deadOptions().length)chooseDead(i);}}}
-  else if(mode==='sector'){if(tapped&&t>15){if(t<60){t=60;}else if(tapSrc==='key'){if(sectorSel===0){shopFromSector=true;mode='shop';t=0;}else nextSector();}else if(ptr.x>=LW/2-130&&ptr.x<=LW/2+130){if(ptr.y>=184&&ptr.y<=216){shopFromSector=true;mode='shop';t=0;}else if(ptr.y>=228&&ptr.y<=260)nextSector();}}}
+  else if(mode==='sector'||mode==='victory'){if(tapped&&t>15){if(t<60)t=60;else if(tapSrc==='key')chooseSector(sectorSel);else if(ptr.x>=LW/2-130&&ptr.x<=LW/2+130){if(ptr.y>=184&&ptr.y<=216)chooseSector(0);else if(ptr.y>=228&&ptr.y<=260)chooseSector(1);}}}
   else if(mode==='shop'){if(tapped){if(tapSrc==='key'){if(shopSel===3)leaveShop();else buy();}else if(ptr.y>=82&&ptr.y<=198){const i=Math.floor((ptr.x-292)/110);if(i>=0&&i<3&&ptr.x<=292+i*110+102){shopSel=i;shopItem=i;}}else if(ptr.y>=298&&ptr.y<=330){if(ptr.x>=510&&ptr.x<=614)leaveShop();else if(ptr.x>=292&&ptr.x<=500&&shopSel<3)buy();}}}
   if(mode!=='title')SFX.stopPreview();
-  SFX.music((mode==='play'&&!paused)||(mode==='title'&&SFX.previewing()),worldStage);
+  // Music runs through play and the sector travel sequence; ducking it for the 3-second flight read as the track stopping.
+  SFX.music(((mode==='play'||mode==='travel')&&!paused)||(mode==='title'&&SFX.previewing()),worldStage);
   tapped=false;}
 // Draw exactly once per animation frame. Catch-up logic steps no longer multiply the render cost, which used to
 // triple the drawing work on a device that was already falling behind.
@@ -1683,7 +1742,7 @@ function render(){
   else if(mode==='title')titleScreen();
   else if(mode==='play'){playScene();if(paused)pauseScreen();}
   else if(mode==='dead')deadScreen();
-  else if(mode==='sector')sectorScreen();
+  else if(mode==='sector'||mode==='victory')sectorScreen();
   else if(mode==='travel'){sectorTravelScreen();if(paused)pauseScreen();}
   else if(mode==='shop')shopScreen();}
 requestAnimationFrame(frame);
