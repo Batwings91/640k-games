@@ -1,133 +1,132 @@
 # 02 — Game design
 
-Everything below is a first pass to react to. Numbers are placeholders for feel, not balance.
+The map and the income are the game. This document is ordered that way: the campaign layer is
+specified in full, the set-pieces are short and optional. Numbers are placeholders for feel.
 
 ## The loop
 
 ```
-Campaign turn (a season)
-  1. Events and income     — harvest, taxes, a herald with news, maybe a court event
-  2. Move and recruit      — move the army along roads, buy troops and works at home
-  3. One deed              — raid, tournament, court, or sabotage (or pass to bank a bonus)
-  4. Rivals act            — visible on the map, fast-forwardable
-  5. Battles and sieges    — any clash triggers a set-piece
-Repeat until one lord holds the crown or the year count runs out.
+Season turn
+  1. Ledger        — income arrives, upkeep leaves, the income line updates on screen
+  2. Rule          — set tax per province, build works, recruit, garrison
+  3. March         — move armies along roads; battles resolve where armies meet
+  4. One deed      — court, tournament or raid (optional; pass banks 2 gold)
+  5. Rivals move   — visibly, fast-forwardable
+Repeat until one lord holds the crown, one lord holds enough income, or the years run out.
 ```
 
-Four seasons make a year. A default campaign is 12 to 16 years (48 to 64 turns) and should take
-30 to 45 minutes. Autumn is harvest, winter halves movement. That alone gives the map a rhythm the
-original lacked.
+Four seasons make a year. Spring: recruitment is cheaper. Summer: full movement. Autumn: harvest
+doubles farm income. Winter: no movement, half income, garrisons matter. A default campaign is
+12 years (48 turns), 30 to 45 minutes.
 
 ## The map
 
-- A fictional kingdom of **12 to 16 provinces**, each with a castle site, a terrain type (lowland,
-  hills, forest, marsh, coast) and a road graph to its neighbours. Provinces are large enough to be
-  readable at 320x200 and few enough that each has a personality.
-- **Roads** are the only way to move at full speed. Off-road costs a turn. Chokepoints (a bridge, a
-  pass) are where fights happen; this is the "reasons to hold specific territories" fix.
-- **Province value** is income plus one feature: a market (extra gold), a quarry (cheaper siege works),
-  a forest (archers, and where the outlaws live), a port (news and trade events), a shrine
-  (reputation). Owning a set of features is more valuable than owning many plain provinces.
-- The **crown province** sits in the centre, empty at the start, and cannot be held without a castle.
-  Taking it is a siege everyone sees coming.
+- **12 to 16 provinces** of a fictional kingdom, each a readable painted region at 320x200, with a
+  road graph to neighbours. Every province has:
+  - **Terrain**: lowland (rich, open), hills (poor, defends), forest (archers, outlaws),
+    marsh (poor, slow), coast (ports, trade).
+  - **Base income**: 1 to 4 gold a season. Visible on the map at all times as a coin count.
+  - **One feature**, or none: market (+2 gold), quarry (siege engines and castles cost less),
+    mill (+1 gold, +1 more in autumn), port (+1 gold and trade events), shrine (+reputation while
+    held), forest (archers).
+  - **A castle site**. Castles are built, not given; a castle holds the province when the army
+    leaves.
+- **Roads** are the only full-speed routes. Chokepoints (bridge, pass, ford) are where the fights
+  happen, so holding one province can shield three.
+- **Neutral provinces** start with local levies (3 to 8 soldiers). They are the early game: cheap
+  land at first, expensive later because the levies grow if nobody takes them.
+- **The crown province** sits in the centre, empty, with the biggest income on the map, and cannot
+  be held without a castle. It is the late game.
 
-## Lords and factions
+## Income, in full
 
-- **Four playable lords**, each with one strong and one weak mini-game and a starting corner. Stats
-  are visible and explained ("Osric: Leadership 3 — troops fight at +1 in the field. Jousting 1 —
-  narrower lance window."). Differences should change how you play, not just how well.
-- **Rival lords** are the same pool: whoever you do not pick, the AI plays. Every lord has a
-  personality profile that drives the AI (raider, builder, tourney-hound, opportunist).
-- Replay comes from lord choice × map seed × event deck. One hand-made map ships first; a second map
-  and a random-map generator are stretch goals (see roadmap).
+The income line, shown on every screen: `Income 14 / season  (Treasury 37)`.
 
-## Economy
+```
+income = Σ provinces ( base × tax modifier × season modifier + feature ) − upkeep
+```
 
-Small numbers on purpose. Gold is the only currency, shown as a number and as a coin pile.
+- **Tax** is set per province: *low* (×0.5, unrest falls, reputation rises slowly), *fair* (×1),
+  *harsh* (×1.5, unrest rises each season). Harsh tax is the early-game gamble: fast gold now, a
+  revolt later if the garrison is thin. Unrest is a visible 0 to 5 on the province; at 5 it revolts
+  and returns to neutral with a levy.
+- **Works** are one-off purchases that raise a province permanently: a mill (5 gold, +1), a road
+  (8 gold, full-speed movement through marsh or hills), a market charter (12 gold, +2, only one
+  per three provinces), walls (see castles). Works survive conquest, so building up a border
+  province is a gift to whoever takes it. That is a deliberate tension.
+- **Upkeep**: 1 gold per knight, 1 per siege engine, 1 per castle beyond the first. Soldiers are
+  free to keep, so a big army of soldiers is cheap but slow and weak in the field.
+- **Autumn** doubles base income. The whole year's plan is built around what you hold in autumn.
+- **Losing your home castle** halves income until you retake it. The home is worth defending.
 
-| Thing | Cost (placeholder) | Notes |
+## Armies and garrisons
+
+Small numbers on purpose. A lord who has never held 40 soldiers is doing fine.
+
+| Unit | Cost | Notes |
 |---|---|---|
-| Soldier | 1 | The bulk of any army; cap by province count |
-| Archer | 2 | Only from forest provinces; strong on defence |
-| Knight | 8 | Rare; wins field battles, needed to raid |
-| Siege engine | 15 | Needed to attack a walled castle; slow to move |
-| Castle | 20 | Turns a province into a stronghold; one per province |
-| Wall repair | 5 | Restores a damaged castle; also the sabotage target |
+| Soldier | 1 | Bulk. Moves at road speed. Counts 1 in battle |
+| Archer | 2 | Forest provinces only. Counts 1 attacking, 2 defending |
+| Knight | 8, upkeep 1 | Counts 3. Needed to raid. Max one recruited per season |
+| Siege engine | 15, upkeep 1 | Needed to attack a castle. Halves army speed |
+| Castle | 20 (12 with a quarry) | Holds a province with a garrison of 2; defenders count ×2 |
 
-Income per turn is the sum of held provinces, plus market and port bonuses, minus upkeep for
-knights and engines. Autumn doubles farm income. Losing your home castle halves income until you
-retake it.
+- **Garrisons**: when an army leaves a province, it leaves what you tell it to. An ungarrisoned
+  province with no castle is taken by anyone who walks in, and its unrest rises by 1 a season.
+  The core tension of the game is how thin to spread.
+- **One army per lord moves per season**, one road step (two on roads through your own land).
+  Other stacks stay as garrisons. This keeps the turn to one decision.
 
-## Set-pieces (the mini-games)
+## Battles, auto-resolved and readable
 
-Each one gets a practice entry on the main menu and a one-screen "how to read this" the first time
-it appears. The player must be able to say, after losing, what they should have done.
+Field battles are not a mini-game. Before the clash the screen shows both strengths with the
+modifiers listed (terrain, castle, knights, lord's leadership), the odds as a percentage, and a
+single choice: **attack**, **hold**, or **withdraw**. The hidden roll is at most ±15%. The result
+screen shows the losses and why. A siege against a castle needs an engine and offers the catapult
+set-piece or **auto-resolve at the shown odds**.
 
-### Field battle (army vs army, no castle)
+## Victory
 
-Not a mini-game in the original; it was a dice roll. Here it is a **short, readable auto-battle with
-one decision**: before the clash, choose a formation (line, wedge, hold) against a preview of the
-enemy's; it plays out in a few seconds of sprites, then a result screen with a simple breakdown.
-Terrain and lord stats are visible modifiers. No hidden roll bigger than ±15%.
+- **Crown**: hold the crown province with a castle for four consecutive seasons while holding the
+  highest income on the map.
+- **Treasury**: hold 60% of the map's total income for a full year. This is the win for the
+  player who would rather build than storm.
+- **Last lord standing.**
+- **Defeat**: lose your last castle.
+- **Score**: years taken, peak income, provinces, reputation, a title. The seed on the result screen.
 
-### Siege (attacking a castle)
+## Lords
 
-The catapult stays, because it was the best thing in the game. Fixes:
-- The **wall has a visible weak section** that moves a little each shot; hitting it matters.
-- Three shot types are a resource (boulder: damage, fire: keeps defenders off the wall next shot,
-  rot: reduces the garrison), shown as a hand of tokens, not a mystery.
-- Distance is set by the trajectory arc drawn on screen before release; the skill is timing the
-  release on a moving power bar and reading wind. The arc is honest.
-- Defenders shoot back; you lose troops per turn spent, so a siege is a race, not a grind.
+Four lords, each with a starting corner and stats that change map decisions, not just odds:
+*Leadership* (field battle bonus), *Stewardship* (+1 gold per 4 provinces), *Renown* (reputation
+starts higher, tournaments favour you), *Cunning* (raids and sabotage). Rivals are the lords you did
+not pick, played by an AI with a matching personality: builder, raider, hoarder, opportunist.
 
-### Raid (sneaking into a rival castle)
+## Set-pieces, all optional
 
-The swordfight, made a **rhythm-and-read duel** instead of a mash: the guard telegraphs high, low, or
-thrust with a two-frame wind-up; you block by matching, then get a window to strike. Later guards
-feint. The raid is a corridor of 2 to 4 guards ending at the treasury (steal gold) or the tower
-(rescue a captive). Failure costs the knights you sent, not the campaign.
+Every set-piece has an **auto-resolve** button showing the odds first. A **strategy only** toggle
+in settings auto-resolves everything silently. Playing them well moves the odds by a margin; it
+never replaces the map.
 
-### Tournament (the joust)
-
-The most broken thing in the original, so it gets the most design:
-- Both riders approach on a fixed rail. A **target reticle drifts** on the opponent's shield; you
-  steer the lance with up/down and commit with one press. The drift pattern is the opponent's
-  skill, and it is visible.
-- Three passes. Points for shield hits, a win for an unhorse. Ties resolve by points.
-- Stakes are chosen before the joust: fame (reputation), gold, or a province against the same from
-  the rival. The AI accepts based on its personality and how it rates your jousting record.
-
-### Court
-
-New, and where the "drama between battles" lives. A deed spent at court draws from an event deck:
-alliances (a rival will not attack you for N turns), marriages (a province and an ally, at the cost
-of a rival's enmity), the outlaws of the forest (a limited, free army for one battle, three uses,
-found by holding a forest province), and the occasional treachery. All text-choice, all with the
-odds shown.
+- **Siege** (the catapult, prototype built): the one set-piece worth keeping. Under a minute.
+  The weak stone tell, three shot types, defenders shoot back. Wired into castle assaults.
+- **Tournament**: a deed. Stakes are gold or a border province. Candidate for cutting; if it stays,
+  it is a three-pass joust with a visible drift reticle.
+- **Raid**: a deed needing a knight. Steal gold from a rival treasury. Candidate for cutting; if
+  it stays, a short read-and-block duel.
+- **Court**: a deed drawing from an event deck: alliances (a rival holds off for N seasons),
+  marriage (a province and an ally), outlaws (a free levy for one battle, from forest provinces),
+  treachery. Text choices with the odds shown. Cheap to build and feeds the map, so it stays.
 
 ## Reputation
 
-A single visible bar per lord, from Tyrant to Beloved. Won in tournaments, rescues and fair fights;
-lost by sabotage, rot, and attacking allies. It sets recruitment caps, event outcomes and whether the
-last neutral provinces join you or your rival when the crown is contested. This replaces the original's
-invisible "fame" with something the player can steer.
+One visible bar per lord, Tyrant to Beloved. Fair tax, held promises and won tournaments raise it;
+harsh tax, rot and attacking allies lower it. It sets how big a levy neutral provinces raise
+against you, whether they join you when the crown is contested, and the price of works. It
+replaces the original's invisible fame with something the player steers from the map.
 
-## Victory and defeat
+## Difficulty and accessibility
 
-- **Win**: hold the crown province with a castle for four consecutive turns while holding more
-  provinces than any rival, or eliminate every rival lord.
-- **Lose**: lose your last castle. There is no "lose your home and limp on"; a new campaign starts in
-  a minute.
-- **Score**: years taken, provinces held, reputation, and a title ("Osric the Patient"). A local
-  high-score table per lord, and a seed shown on the result screen for sharing.
-
-## Difficulty
-
-Three named settings that change AI aggression, AI income, and the size of the hidden roll, all
-listed on the settings screen. No setting changes the mini-games' timing windows; those are skill.
-
-## Accessibility
-
-Every mini-game has a "generous" timing option that widens windows by a fixed fraction and is not a
-difficulty setting; it is in accessibility, and it does not affect score. All input is keyboard,
-gamepad or mouse/touch; the mini-games are designed around one axis and one button so touch works.
+Three named settings changing AI income, AI aggression and the size of the hidden roll, all listed.
+Set-piece timing is never a difficulty setting; a "generous timing" option lives in accessibility.
+All input works with keyboard, gamepad or mouse and touch.

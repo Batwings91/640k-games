@@ -16,7 +16,15 @@ references and the keep/cut list, which will reshape most of what is here.
 | [05-roadmap.md](05-roadmap.md) | Milestones from paper prototype to launch, with what each proves |
 | [06-open-questions.md](06-open-questions.md) | Decisions that need you, and the reference material still to come |
 | [07-paper-prototype.md](07-paper-prototype.md) | Milestone 1: one-page table rules for the campaign turn |
-| [prototype/siege.html](prototype/siege.html) | Milestone 2: playable siege set-piece, open the file in a browser (`?seed=1234` fixes the wall and wind) |
+| [prototype/campaign.html](prototype/campaign.html) | Milestone 2: playable map campaign, land, income, tax, garrisons, three AI lords, three victory conditions. Open in a browser; `?seed=1234` fixes the map |
+| [prototype/siege.html](prototype/siege.html) | The siege set-piece, now optional in the design. Open in a browser (`?seed=1234` fixes the wall and wind) |
+
+## Where the design stands
+
+The land-and-income strategy is the core, decided September 2026. Mini-games are short, optional
+and auto-resolvable. Balance in the campaign prototype is untuned: a scripted player that garrisons
+and builds castles wins on most seeds, and the AI lords churn land between themselves. Tuning waits
+for the headless balance runner in `03-technical-plan.md`.
 
 ## Legal note, up front
 

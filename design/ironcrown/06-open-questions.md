@@ -3,9 +3,9 @@
 Decisions that change the work materially, so they are yours. The rest of the design proceeds on the
 assumptions noted in brackets.
 
-1. **Keep/cut list.** Which of the original's pieces do you want gone, and which emphasised? My
-   hypothesis is in `01-vision.md`. (Assumed: keep siege, joust, raid, map; cut the invisible fame
-   and the dice-roll battles; add court and reputation.)
+1. **Keep/cut list.** Decided: the land-and-income strategy is the core and is emphasised. Still
+   open: which mini-games survive at all. (Assumed: siege stays as a short optional set-piece;
+   joust and raid are candidates for cutting, and every set-piece has auto-resolve.)
 2. **Look.** Amiga-painted, DOS VGA, or EGA 16-colour? (Assumed: 320x200 VGA, 256 colours, to match
    the 640K brand and stand apart from the original.) Your visual references decide this.
 3. **Setting.** Fictional kingdom, or a real-feeling one with fictional names? (Assumed: fictional.)

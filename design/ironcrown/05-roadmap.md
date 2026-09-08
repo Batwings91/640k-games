@@ -7,9 +7,10 @@ shelved without waste. Durations are rough and assume one person part-time.
 |---|---|---|---|
 | 0 | **Design lock, first pass** (this folder, then your references and keep/cut list) | We agree on what the game is | Updated docs, a one-page pitch, a palette and three reference images |
 | 1 | **Paper prototype** of the campaign turn, 2 weeks | The map layer is interesting on its own | A printable map, counters, and the turn rules on one page; three play sessions with notes |
-| 2 | **Siege set-piece**, standalone, 3 weeks | The best mini-game is fun and readable in the studio's tech | Playable in a browser from the practice menu, with sound; first devlog GIF |
-| 3 | **Map and turn loop**, 4 weeks | A campaign can be played start to finish against a dumb AI | Hand-made map, economy, movement, field battle auto-resolve, save/load, victory |
-| 4 | **Joust and raid**, 4 weeks | The two "opaque" mini-games are fixed | Both playable from practice and from the campaign; practice mode explains the tells |
+| 2 | **Map and economy prototype** (done first, `prototype/campaign.html`) | Land, income and armies are fun with nothing else | Browser map, provinces, income, tax, garrisons, recruit, move, auto-battle, AI rivals, victory |
+| 3 | **Campaign proper**, 4 weeks | The prototype's loop survives real data | Hand-made map with features and works, seasons, save/load, the income ledger screen, victory and score |
+| 4 | **Siege set-piece** (prototype done, `prototype/siege.html`) + auto-resolve, 2 weeks | The best mini-game earns its minute | Wired into the campaign with an "auto-resolve at shown odds" button |
+| 4b | **Joust and raid**, 3 weeks, *may be cut* | The other mini-games justify themselves | Both playable from practice; each has auto-resolve; the strategy-only toggle hides them |
 | 5 | **Court, reputation, event deck**, 3 weeks | The drama-between-battles layer earns its place | Event JSON, court scene, reputation effects wired in |
 | 6 | **Real AI and balance**, 3 weeks | The game can be lost, and each lord plays differently | Personality planners, the headless balance runner, tuned tables |
 | 7 | **Art and music pass**, 4 to 6 weeks | It looks and sounds like the pitch | All screens painted to the palette, music per scene, transitions, title |
@@ -24,6 +25,5 @@ paper prototype says the map layer needs the most work.
 
 ## What to build first, concretely
 
-If the design lock takes a while, the technically safe start is milestone 2, the siege: it depends
-on nothing else, it exercises the whole render/audio/input stack, and it is the first thing worth
-showing anyone.
+The map. Both prototypes now exist; the campaign one is where the time goes. The siege waits until
+the map loop is proven, and the joust and raid are only built if the map game wants them.

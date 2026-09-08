@@ -2,8 +2,14 @@
 
 ## One line
 
-A one-sitting conquest of a divided kingdom, told as a cinematic: a hand-painted map, a handful of
-set-piece mini-games, and a court drama that plays out between the battles.
+A one-sitting conquest of a divided kingdom: a hand-painted map of provinces, an income you build
+and spend every season, and armies that take land. The mini-games are the seasoning, not the meal.
+
+## The decision that shapes everything (September 2026)
+
+The part of the original that mattered most was the strategy: choosing which lands to take, watching
+the income grow, and turning that income into the force that takes the next province. That is the
+game. Everything else in this design serves it, is shortened to serve it, or can be switched off.
 
 ## What the original was
 
@@ -20,10 +26,14 @@ most home computers, including a DOS version in 1987):
 - The Normans were the AI opponents. You won by holding the whole map.
 - Presentation carried it: Jim Sachs' painted screens, cinematic interstitials, and a strong score.
 
-## Hypothesis: what made it great
+## What made it great
 
-To be confirmed or overturned by you. Ordered by how sure I am.
+Confirmed with you: the land and income loop is the heart. The rest of this list is the supporting
+cast, in order.
 
+0. **Taking land and watching the income grow.** Every province you hold pays you every turn. A
+   bigger treasury buys a bigger army, which takes more land. The map shows your progress as a
+   spreading colour, and the income line is the score you actually care about.
 1. **It is a cinematic, not a spreadsheet.** Every action is a scene. The map is a painting, the
    raid is a swordfight in a courtyard, the wedding is a screen you remember. The game is short
    enough that every scene stays fresh.
@@ -53,8 +63,16 @@ To be confirmed or overturned by you. Ordered by how sure I am.
 
 ## Pillars for Ironcrown
 
-These are the rules the rest of the design answers to.
+These are the rules the rest of the design answers to, in priority order.
 
+- **The map is the game.** Every season's real decision is on the map: which province, which
+  road, how much to leave behind, what to build, how hard to tax. If a feature does not change
+  a map decision, it is cut.
+- **Income is the score.** The income line is always on screen. Land is worth different amounts,
+  and holding land well (garrisons, works, fair tax) pays more than holding a lot of it badly.
+- **Set-pieces are short and optional.** Each mini-game lasts under a minute, can be auto-resolved
+  with the odds shown, and a "strategy only" toggle removes them entirely. Playing them well earns
+  a margin, never the game.
 - **Every scene readable, every mini-game learnable.** Each mini-game has a visible tell, a clear
   input, and a skill ceiling. Practice mode from the main menu. If a player loses, they know why.
 - **Strategy that matters without getting bigger.** Keep the small numbers. Add *reasons*: terrain,
