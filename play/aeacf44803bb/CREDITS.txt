@@ -161,3 +161,5 @@ Seed Matriarch (assets/matriarch_body.webp):
   No third-party source pack. Prompt/provenance: docs/matriarch-20260908.md.
 
 Living Labyrinth background (world_labyrinth.webp): original AI-assisted artwork generated with OpenAI under 640K Games direction, 2026-09-08. No third-party asset pack. See docs/labyrinth-20260908.md.
+
+Needle creature (needle_body.webp): original AI-assisted artwork generated with OpenAI under 640K Games direction, 2026-09-08. No third-party asset pack. See docs/needle-20260908.md.
