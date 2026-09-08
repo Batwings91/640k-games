@@ -6,9 +6,10 @@ assumptions noted in brackets.
 1. **Keep/cut list.** Decided: the land-and-income strategy is the core and is emphasised. Still
    open: which mini-games survive at all. (Assumed: siege stays as a short optional set-piece;
    joust and raid are candidates for cutting, and every set-piece has auto-resolve.)
-2. **Look.** Amiga-painted, DOS VGA, or EGA 16-colour? (Assumed: 320x200 VGA, 256 colours, to match
-   the 640K brand and stand apart from the original.) Your visual references decide this.
-3. **Setting.** Fictional kingdom, or a real-feeling one with fictional names? (Assumed: fictional.)
+2. **Look.** Decided: 800x600, 256-colour VGA palette. Your visual references decide the painting
+   style within that.
+3. **Setting.** Decided: England, real regions, invented lords. Still open: whether Wales stays on
+   the map as two poor hill provinces (as in the prototype) or is cut to keep the count down.
 4. **Paid or free-with-ads?** The whole monetisation chapter assumes paid with a free demo. If you
    would rather keep the Spore Wars model, the demo becomes the game and the design shrinks.
 5. **Campaign length.** Is 30 to 45 minutes right, or do you want a longer, save-and-return

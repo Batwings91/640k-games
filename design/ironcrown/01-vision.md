@@ -82,12 +82,14 @@ These are the rules the rest of the design answers to, in priority order.
 - **Replay through faction, map and event variety**, not through grind.
 - **Cinematic by default, skippable always.** Every interstitial can be skipped with one press and
   the game remembers the choice.
-- **Mid-90s PC look, not Amiga.** 640K Games' brand is the DOS era: 320x200 VGA, 256 colours,
-  painted screens with dithering, a sound-card-style score. This differentiates from the original's
-  Amiga look without losing the "painted" feel. (Visual references from you will settle this.)
+- **Mid-90s PC look, not Amiga.** 640K Games' brand is the DOS era: 800x600 SVGA, a 256-colour
+  VGA palette, painted screens with dithering, a sound-card-style score. Decided September 2026.
+  This differentiates from the original's Amiga look without losing the "painted" feel. Your
+  visual references will settle the painting style within those limits.
 
 ## Tone
 
-Legend rather than history. A fictional kingdom (so we owe nothing to real geography and nobody
-argues about the Normans). Straight-faced, slightly grand, occasionally funny in the way the herald
+Legend rather than history, set in England. The map is the real island, the provinces are real
+regions, and the lords and their houses are invented so the game owes nothing to the original's
+characters or to any real dynasty. Straight-faced, slightly grand, occasionally funny in the way the herald
 announcing your defeat is funny. No grimdark, no blood spray; a Saturday-afternoon film.

@@ -17,16 +17,28 @@ The Spore Wars way, with the differences a strategy game needs.
 
 ## Screen and art pipeline
 
-- Logical resolution **320x200**, scaled by an integer factor to the window with letterboxing.
-  Wide screens get black bars, on purpose. (If your references come back as 320x240 or 640x400,
-  this is a one-constant change as long as it is decided before the map is painted.)
-- A **256-colour master palette** for the whole game, and per-scene sub-palettes of ~64. Art is
-  authored at any depth and quantised and ordered-dithered by a tool in the repo, the same approach
-  as `tools/render-hero.js` here. This is what makes it look mid-90s instead of "pixel art".
-- Screens are painted backgrounds plus sprite layers. Sprite sheets are one PNG per scene. Font is a
-  bitmap font, two sizes, in the palette.
-- Fallback expectation for build size: under 15 MB total including music, so portals and itch.io
-  browser embeds load fast.
+Decided September 2026: **800x600, 256-colour VGA palette, the map is England.**
+
+- Logical resolution **800x600**, 4:3. This is SVGA (VESA mode 103h) as mid-90s DOS games used it,
+  and it gives a painted map of England room for 18 legible provinces. The canvas scales to fit the
+  window with the aspect kept, integer-scaled when the fit is 2x or more, letterboxed otherwise.
+  On a 1080p screen it shows at 1x with bars; on 4K at 2x. Fullscreen uses the same rule.
+- **256-colour VGA palette.** The VGA DAC held 256 entries of 6 bits per channel, so every colour
+  in the game is one of 262,144 possible values and the whole game uses a master palette of 256 of
+  them. Art is authored at any depth and quantised and ordered-dithered to the master palette by a
+  tool in the repo (the same approach as this site's `tools/render-hero.js`). Code colours pass
+  through a `vga()` snap so UI and art match. Per-scene sub-palettes of about 64 keep scenes
+  distinct. This is what makes it look mid-90s rather than "pixel art".
+- **Platform fit for 800x600, to verify at each submission**: itch.io lets the developer set the
+  HTML5 embed size and offers a fullscreen button, so 800x600 is fine there. Steam via a desktop
+  wrapper accepts any resolution. CrazyGames and Poki prefer games that fill any aspect ratio;
+  a 4:3 game letterboxed inside their 16:9 frame is allowed as far as I know but may draw review
+  notes, so the demo build there is the one to test early. Nothing in the design depends on
+  those two portals.
+- Screens are painted backgrounds plus sprite layers. Sprite sheets are one PNG per scene. Font
+  is a bitmap font in the palette, two sizes; the prototypes use the browser's monospace as a
+  stand-in.
+- Build size target under 20 MB including music, so itch.io browser embeds load fast.
 
 ## Audio
 

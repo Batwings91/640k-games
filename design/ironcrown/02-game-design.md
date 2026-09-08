@@ -21,8 +21,11 @@ doubles farm income. Winter: no movement, half income, garrisons matter. A defau
 
 ## The map
 
-- **12 to 16 provinces** of a fictional kingdom, each a readable painted region at 320x200, with a
-  road graph to neighbours. Every province has:
+- **England and Wales, 18 provinces** (decided September 2026; see the prototype): Northumbria,
+  Cumbria, York, Lancaster, Lincoln, Chester, Nottingham, Gwynedd, Powys, Norfolk, Warwick,
+  Gloucester, Wessex, Cornwall, Devon, London, Kent, Essex. The map is a painted England at
+  800x600 with a road graph to neighbours; the Bristol Channel and the Wash are not crossings.
+  Every province has:
   - **Terrain**: lowland (rich, open), hills (poor, defends), forest (archers, outlaws),
     marsh (poor, slow), coast (ports, trade).
   - **Base income**: 1 to 4 gold a season. Visible on the map at all times as a coin count.
@@ -35,8 +38,9 @@ doubles farm income. Winter: no movement, half income, garrisons matter. A defau
   happen, so holding one province can shield three.
 - **Neutral provinces** start with local levies (3 to 8 soldiers). They are the early game: cheap
   land at first, expensive later because the levies grow if nobody takes them.
-- **The crown province** sits in the centre, empty, with the biggest income on the map, and cannot
-  be held without a castle. It is the late game.
+- **London is the crown province**: walled and garrisoned by the city from the start, the biggest
+  income on the map, and it takes a siege engine to assault. It is the late game. The four homes are the corners:
+  Northumbria, Cornwall, Norfolk and Chester.
 
 ## Income, in full
 
